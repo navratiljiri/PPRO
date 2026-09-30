@@ -29,17 +29,17 @@ Tento dokument definuje závazná pravidla chování, pracovní postupy a standa
 
 ---
 
-## 3. Technická dokumentace jako jediný zdroj pravdy (Single Source of Truth)
+## 3. Technická dokumentace a Changelog
 
-- [README.md](file:///c:/Develop/PPRO/README.md) je jediným autoritativním zdrojem pravdy projektu.
-- Obsahuje:
-  1. Kompletní zadání klienta a jeho rozbor.
-  2. Obchodní pravidla (business constraints).
-  3. **Oddíl Rozhodnutí:** Záznam všech architektonických a procesních rozhodnutí (zejména k 5 otevřeným bodům ze zadání) včetně jejich věcného zdůvodnění.
-  4. Technický návrh (vrstvy, datový model, schémata).
-  5. Návod na zprovoznění a testování (`docker compose up`).
-  6. Deník změn a rozhodnutí (Changelog).
-- Pokud klient (vyučující na cvičení) specifikuje novou změnu, tato změna se nejprve zaeviduje do [README.md](file:///c:/Develop/PPRO/README.md) včetně dopadů na architekturu.
+- [README.md](file:///c:/Develop/PPRO/README.md) je jediným autoritativním zdrojem pravdy pro architekturu, byznys pravidla a rozhodnutí.
+  - Obsahuje:
+    1. Kompletní zadání klienta a jeho rozbor.
+    2. Obchodní pravidla (business constraints).
+    3. **Oddíl Rozhodnutí:** Záznam všech architektonických a procesních rozhodnutí (zejména k 5 otevřeným bodům ze zadání) včetně jejich věcného zdůvodnění.
+    4. Technický návrh (vrstvy, datový model, schémata).
+    5. Návod na zprovoznění a testování (`docker compose up`).
+- [CHANGELOG.md](file:///c:/Develop/PPRO/CHANGELOG.md) slouží k vedení podrobné historie verzí a úprav kódu podle standardu [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/) a Sémantického verzování.
+- Pokud klient (vyučující na cvičení) specifikuje novou změnu, tato změna se nejprve zaeviduje do [README.md](file:///c:/Develop/PPRO/README.md) v sekci Rozhodnutí a následně promítne do [CHANGELOG.md](file:///c:/Develop/PPRO/CHANGELOG.md).
 
 ---
 
@@ -73,7 +73,8 @@ Agent při jakýchkoliv návrzích a implementaci důsledně dodržuje následuj
 ---
 
 ## 5. Pre-commit hook
-V repozitáři je aktivní git pre-commit hook (ve složce `.githooks/pre-commit` a v `.git/hooks/pre-commit`), který před vytvořením každého commitu kontroluje:
-- existenci a validitu [README.md](file:///c:/Develop/PPRO/README.md),
+V repozitáři je aktivní git pre-commit hook (ve složce `.githooks/pre-commit` a v `.git/hooks/pre-commit`), který před vytvořením každého commitu striktně kontroluje:
+- existenci a validitu [README.md](file:///c:/Develop/PPRO/README.md) a [CHANGELOG.md](file:///c:/Develop/PPRO/CHANGELOG.md),
 - zda nedošlo ke commitu citlivých souborů (např. `.env`),
-- zda jsou kódové změny doprovázeny kontrolou stavu dokumentace.
+- **Striktní režim (`exit 1`):** Pokud commit obsahuje změny v kódu či konfiguraci projektu, musí obsahovat také aktualizaci `CHANGELOG.md` a/nebo `README.md`. V opačném případě je commit zablokován.
+

@@ -267,12 +267,10 @@ Projekt striktně dodržuje provozní zásady specifikované v [AGENTS.md](file:
 
 ---
 
-## 11. Deník změn a rozhodnutí (Changelog)
+## 11. Historie změn a verzí (Changelog)
 
-- **2026-09-30:**
-  - Inicializace git repozitáře a propojení s GitHub `git@github.com:navratiljiri/PPRO.git`.
-  - Vytvoření [AGENTS.md](file:///c:/Develop/PPRO/AGENTS.md) definujícího pravidla práce asistenta (commity s `-m`, explicitní push, `README.md` jako zdroj pravdy).
-  - Vytvoření [README.md](file:///c:/Develop/PPRO/README.md) se specifikací Zadání C (Akademie Trutnov – Kurzy vzdělávacího centra).
-  - Zpracování 5 otevřených bodů a formulace závazných architektonických rozhodnutí.
-  - Návrh ERD modelu a třívrstvé architektury splňující povinné minimum PPRO.
-  - Nastavení git pre-commit hooku pro kontrolu dokumentace.
+Protokol verzí a podrobný přehled všech změn ve zdrojovém kódu a konfiguraci je veden v samostatném souboru podle standardu *Keep a Changelog*:
+👉 **[CHANGELOG.md](CHANGELOG.md)**
+
+*(Zásadní architektonická a byznysová rozhodnutí k otevřeným bodům klienta jsou evidována v [sekci 5. Otevřené body a Seznam rozhodnutí](#5-otevřené-body-a-seznam-rozhodnutí).)*
+

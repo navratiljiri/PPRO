@@ -1,14 +1,19 @@
 #!/bin/sh
 # ==============================================================================
 # Pre-commit hook pro projekt PPRO (Zadání C - Akademie Trutnov)
-# Kontrola integrity technické dokumentace a repozitáře
+# Kontrola integrity technické dokumentace a repozitáře (PŘÍSNÝ REŽIM)
 # ==============================================================================
 
-echo "==> [Pre-commit Hook] Kontrola před vytvořením commitu..."
+echo "==> [Pre-commit Hook] Zahajuji kontrolu před vytvořením commitu..."
 
-# 1. Kontrola existence README.md (Jediný zdroj pravdy)
+# 1. Kontrola existence základních dokumentů (Single Source of Truth & Changelog)
 if [ ! -f "README.md" ]; then
     echo "CHYBA: Soubor README.md neexistuje! README.md je jediný zdroj pravdy projektu." >&2
+    exit 1
+fi
+
+if [ ! -f "CHANGELOG.md" ]; then
+    echo "CHYBA: Soubor CHANGELOG.md neexistuje! Projekt vyžaduje standardizovaný changelog." >&2
     exit 1
 fi
 
@@ -19,16 +24,31 @@ if [ -n "$STAGED_ENV" ]; then
     exit 1
 fi
 
-# 3. Kontrola změn v kódu vs. dokumentace
-# Pokud jsou ve stage soubory kódu (src, app, docker-compose atd.), připomene ověření dokumentace
+# 3. Striktní kontrola změn v kódu vs. dokumentace
+# Pokud jsou ve stage soubory projektu (kód, konfigurace, docker apod.) a nejedná se pouze o změnu dokumentace:
 STAGED_FILES=$(git diff --cached --name-only)
-if echo "$STAGED_FILES" | grep -qvE '^(README\.md|AGENTS\.md|\.gitignore|\.githooks)'; then
-    echo "--> Detekovány změny ve zdrojových souborech / konfiguraci."
-    if ! echo "$STAGED_FILES" | grep -q 'README\.md'; then
-        echo "--> UPOZORNĚNÍ: Změny v kódu bez současné změny README.md."
-        echo "    Ujistěte se, že všechny architektonické změny a rozhodnutí jsou zaznamenány v README.md."
+
+# Ignorujeme samotnou dokumentaci, gitignore a hooky
+CODE_CHANGES=$(echo "$STAGED_FILES" | grep -vE '^(README\.md|CHANGELOG\.md|AGENTS\.md|\.gitignore|\.githooks/|\.git/)')
+
+if [ -n "$CODE_CHANGES" ]; then
+    # Zkontrolujeme, zda je ve stage současně CHANGELOG.md nebo README.md
+    DOCS_UPDATED=$(echo "$STAGED_FILES" | grep -E '^(README\.md|CHANGELOG\.md)$')
+    if [ -z "$DOCS_UPDATED" ]; then
+        echo "================================================================================" >&2
+        echo "CHYBA COMMITU: Byly detekovány změny v kódu nebo konfiguraci:" >&2
+        echo "$CODE_CHANGES" | sed 's/^/  - /' >&2
+        echo "" >&2
+        echo "Commit byl zablokován, protože v něm chybí aktualizace dokumentace!" >&2
+        echo "Podle pravidel projektu musí každá změna kódu obsahovat:" >&2
+        echo "  - záznam v CHANGELOG.md (popis úpravy dle Keep a Changelog) a/nebo" >&2
+        echo "  - aktualizaci README.md (pokud se mění architektura, model či rozhodnutí)." >&2
+        echo "" >&2
+        echo "Nejprve aktualizujte CHANGELOG.md / README.md, přidejte je do stage (git add) a zkuste to znovu." >&2
+        echo "================================================================================" >&2
+        exit 1
     fi
 fi
 
-echo "==> [Pre-commit Hook] Kontrola proběhla úspěšně."
+echo "==> [Pre-commit Hook] Všechny kontroly úspěšně proběhly."
 exit 0
