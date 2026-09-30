@@ -1,0 +1,46 @@
+# Environment & secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# IDE & Editor
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs & temp
+*.log
+logs/
+temp/
+tmp/
+
+# Build artifacts & package managers
+bin/
+obj/
+dist/
+build/
+out/
+target/
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+vendor/
+
+# Docker volumes / local data
+docker-data/
+postgres-data/
+mysql-data/
