@@ -69,6 +69,8 @@ Agent při jakýchkoliv návrzích a implementaci důsledně dodržuje následuj
    - Aplikace a databáze musí být bezproblémově spustitelné pomocí `docker compose up`.
 7. **Syntetická data:**
    - Žádná reálná osobní data ani autentizační údaje v repozitáři.
+8. **Jazyk kódu – striktně angličtina:**
+   - Veškeré proměnné, metody, třídy, databázové tabulky a sloupce, parametry a routy MUSÍ být pojmenovány výhradně v angličtině (např. `Course`, `duration_hours`, `is_accredited`, `code`). Čeština je vyhrazena pouze pro texty uživatelského rozhraní (UI), zadání a dokumentaci.
 
 ---
 

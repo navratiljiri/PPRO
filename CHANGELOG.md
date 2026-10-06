@@ -7,7 +7,17 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 
 ---
 
-## [Nenasazeno] (Unreleased)
+## [0.2.0] - 2026-10-06
+### Přidáno (Added)
+- **Kostra Laravel 11/12 aplikace:** Zprovoznění čistého PHP 8.4 backendu bez Livewire.
+- **Frontend & Design:** Čisté Blade šablony a Tailwind CSS v4 (typografie Plus Jakarta Sans, responsivní karty, filtry, badge).
+- **Čistá MVC architektura se servisní vrstvou pro entitu `Kurz`:**
+  - *Prezentační vrstva:* `CourseController` (využívá Route Model Binding a Dependency Injection), `StoreCourseRequest`, `UpdateCourseRequest`, Blade komponenty (`index`, `show`, `create`, `edit`).
+  - *Aplikační vrstva:* `CourseService` zapouzdřující byznys invarianty (unikátnost kódu, nezáporná cena, $\ge 1$ hodina, filtry a výpočet statistik).
+  - *Datová vrstva:* Eloquent model `Course` s přímými Query Scopes (`active`, `accredited`, `search`) a migrace `courses`. Bez nadbytečných repozitářů a rozhraní.
+- **Automatizované testy:** 8 Feature testů v `CourseManagementTest.php` a `ExampleTest.php` (24 assercí, všechny procházejí).
+- **Syntetická data:** `CourseSeeder` s reálnými rekvalifikačními kurzy (účetnictví, programování, management).
+- **Kontejnerizace & Docker:** `Dockerfile` (PHP 8.4 Apache) a `docker-compose.yml` (aplikace + MySQL 8.0 databáze).
 
 ---
 

@@ -44,3 +44,14 @@ vendor/
 docker-data/
 postgres-data/
 mysql-data/
+
+# Laravel specific
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+.phpunit.result.cache
+.phpunit.cache
+auth.json
+

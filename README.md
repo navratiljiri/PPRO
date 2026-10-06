@@ -102,135 +102,136 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 
 ## 6. Povinné minimum PPRO
 
-| Požadavek | Návrh řešení | Stav |
+| Požadavek | Návrh a realizace | Stav |
 |---|---|:---:|
-| **3 vrstvy se závislostmi jedním směrem** | UI/Kontrolery $\rightarrow$ Aplikační/Doménová logika $\rightarrow$ Datová perzistence | Navrženo |
-| **Relační databáze v Dockeru** | PostgreSQL běžící v kontejneru | Navrženo |
-| **Verzované migrace** | Schéma řízené migračními skripty | Navrženo |
-| **Minimálně 5 entit** | Kurz, Termín, Lektor, Student, Přihláška, Lekce, Docházka, Osvědčení (celkem 8) | Navrženo |
+| **3 vrstvy se závislostmi jedním směrem** | UI/Blade (`CourseController`) $\rightarrow$ Byznys logika (`CourseService`) $\rightarrow$ Perzistence (Eloquent model `Course` se Scopy) | **Implementováno (pro Kurz)** |
+| **Relační databáze v Dockeru** | MySQL 8.0 kontejner v `docker-compose.yml` | **Připraveno** |
+| **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` | **Implementováno** |
+| **Minimálně 5 entit** | Kurz (hotovo), Termín, Lektor, Student, Přihláška, Lekce, Docházka, Osvědčení | 1/8 hotovo (Kurz) |
 | **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes Lekce), Studenti $\leftrightarrow$ Termíny (přes Přihlášky) | Navrženo |
-| **Automatizované testy** | Unit & integrační testy pro klíčová pravidla (kapacita, pořadník, docházka, certifikace) | V plánu |
-| **docker compose up** | Kompletní spuštění aplikace i databáze jediným příkazem | V plánu |
-| **Syntetická data** | Žádné reálné osobní údaje; seed skript s modelovými daty | V plánu |
+| **Automatizované testy** | Feature testy pro katalog, validaci, tvorbu, úpravu i mazání kurzu (`php artisan test`) | **Implementováno (8 testů, 24 ass.)** |
+| **docker compose up** | Kompletní spuštění aplikace i MySQL databáze (`docker-compose.yml` + `Dockerfile`) | **Připraveno** |
+| **Syntetická data** | Žádná reálná data; `CourseSeeder` se vzorovými kurzy Akademie Trutnov | **Implementováno** |
 
 ---
 
 ## 7. Architektonický návrh
 
-Systém je navržen podle zásad čisté třívrstvé architektury:
+Systém je navržen a realizován podle zásad čisté MVC architektury se servisní vrstvou v PHP Laravel:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│               PREZENTAČNÍ VRSTVA (UI)                  │
-│       Webové rozhraní / REST API kontrolery            │
-│   (Správa kurzů, přihlášek, docházky, statistiky)      │
-└───────────────────────────┬────────────────────────────┘
-                            │ volá (závislost dolů)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│            APLIKAČNÍ A DOMÉNOVÁ VRSTVA                │
-│  - Registrační služba (hlídání kapacity, pořadník)     │
-│  - Certifikační služba (validace 70% docházky, čísla)  │
-│  - Výkazová služba (odučené hodiny, naplněnost)        │
-│  - Doménové entity a invarianty                        │
-└───────────────────────────┬────────────────────────────┘
-                            │ volá (závislost dolů)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│            DATOVÁ A PERZISTENTNÍ VRSTVA                │
-│  - ORM / Databázové repozitáře                         │
-│  - Databázové migrace                                  │
-│  - PostgreSQL v Docker kontejneru                      │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        PREZENTAČNÍ VRSTVA (UI)                         │
+│  - app/Http/Controllers/CourseController.php (Route Model Binding)     │
+│  - app/Http/Requests/StoreCourseRequest.php, UpdateCourseRequest.php   │
+│  - resources/views/courses/ (Blade šablony) + Tailwind CSS v4          │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ volá přes Dependency Injection
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     APLIKAČNÍ A DOMÉNOVÁ VRSTVA                        │
+│  - app/Services/CourseService.php (byznys pravidla, filtry, validace)  │
+│  - (v další fázi: RegistrationService, CertificateService)             │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ dotazuje přímo přes Eloquent & Scopes
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     DATOVÁ A PERZISTENTNÍ VRSTVA                       │
+│  - app/Models/Course.php (Eloquent ORM s Query Scopes)                 │
+│  - database/migrations/ (verzované migrace schématu)                   │
+│  - MySQL 8.0 běžící v Docker kontejneru                                │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 8. Doménový a datový model
 
-### Entity a vztahy (ER diagram)
+### Entity a vztahy (ER diagram – v anglické notaci)
 
 ```mermaid
 erDiagram
-    KURZ ||--o{ TERMIN : "má vypsané"
-    TERMIN ||--o{ LEKCE : "skládá se z"
-    LEKTOR ||--o{ LEKCE : "vyučuje"
-    TERMIN ||--o{ PRIHLASKA : "eviduje"
-    STUDENT ||--o{ PRIHLASKA : "podává"
-    PRIHLASKA ||--o| OSVEDCENI : "získává"
-    LEKCE ||--o{ ZAZNAM_DOCHAZKY : "zahrnuje"
-    PRIHLASKA ||--o{ ZAZNAM_DOCHAZKY : "má účast"
+    COURSE ||--o{ COURSE_TERM : "offers"
+    COURSE_TERM ||--o{ LESSON : "consists of"
+    LECTURER ||--o{ LESSON : "teaches"
+    COURSE_TERM ||--o{ REGISTRATION : "receives"
+    STUDENT ||--o{ REGISTRATION : "submits"
+    REGISTRATION ||--o| CERTIFICATE : "earns"
+    LESSON ||--o{ ATTENDANCE_RECORD : "tracks"
+    REGISTRATION ||--o{ ATTENDANCE_RECORD : "participates"
 
-    KURZ {
-        uuid id PK
-        string nazev
-        text anotace
-        int rozsah_hodin
-        decimal cena
-        boolean je_akreditovany
+    COURSE {
+        bigint id PK
+        string code UK
+        string name
+        text annotation
+        int duration_hours
+        decimal price
+        boolean is_accredited
+        string status "active | archived"
     }
 
-    TERMIN {
-        uuid id PK
-        uuid kurz_id FK
-        datetime datum_od
-        datetime datum_do
-        string misto_ucebna
-        int kapacita
-        string stav "NAPLNOVANY | PROBIHAJICI | UKONCENY | ZRUSENY"
+    COURSE_TERM {
+        bigint id PK
+        bigint course_id FK
+        datetime start_date
+        datetime end_date
+        string classroom
+        int capacity
+        string status "enrolling | in_progress | completed | cancelled"
     }
 
-    LEKTOR {
-        uuid id PK
-        string jmeno
-        string prijmeni
+    LECTURER {
+        bigint id PK
+        string first_name
+        string last_name
         string email
-        string telefon
+        string phone
     }
 
-    LEKCE {
-        uuid id PK
-        uuid termin_id FK
-        uuid lektor_id FK
-        datetime datum_cas_od
-        datetime datum_cas_do
-        int pocet_hodin
-        string tema
+    LESSON {
+        bigint id PK
+        bigint course_term_id FK
+        bigint lecturer_id FK
+        datetime starts_at
+        datetime ends_at
+        int duration_hours
+        string topic
     }
 
     STUDENT {
-        uuid id PK
-        string jmeno
-        string prijmeni
+        bigint id PK
+        string first_name
+        string last_name
         string email
-        string telefon
+        string phone
     }
 
-    PRIHLASKA {
-        uuid id PK
-        uuid termin_id FK
-        uuid student_id FK
-        datetime vytvoreno_v
-        string stav "ZAREGISTROVANO | V_PORADNIKU | NABIDNUTO | ZRUSENO | DOKONCENO"
-        int poradi_v_poradniku
-        datetime nabidka_vyprsi_v
-        text duvod_zruseni
+    REGISTRATION {
+        bigint id PK
+        bigint course_term_id FK
+        bigint student_id FK
+        datetime created_at
+        string status "registered | waiting_list | offered | cancelled | completed"
+        int waiting_order
+        datetime offer_expires_at
+        text cancellation_reason
     }
 
-    ZAZNAM_DOCHAZKY {
-        uuid id PK
-        uuid prihlaska_id FK
-        uuid lekce_id FK
-        boolean pritomen
-        string poznamka
+    ATTENDANCE_RECORD {
+        bigint id PK
+        bigint registration_id FK
+        bigint lesson_id FK
+        boolean is_present
+        string note
     }
 
-    OSVEDCENI {
-        uuid id PK
-        uuid prihlaska_id FK
-        string evidencni_cislo UK
-        date datum_vydani
-        boolean lektor_schvalil
+    CERTIFICATE {
+        bigint id PK
+        bigint registration_id FK
+        string certificate_number UK
+        date issue_date
+        boolean lecturer_approved
     }
 ```
 
