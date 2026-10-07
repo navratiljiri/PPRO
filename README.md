@@ -19,6 +19,7 @@
 9. [Instalace a spuštění](#9-instalace-a-spuštění)
 10. [Vývojové workflow a zásady](#10-vývojové-workflow-a-zásady)
 11. [Deník změn a rozhodnutí (Changelog)](#11-deník-změn-a-rozhodnutí-changelog)
+12. [Přehled funkcionality a drátové modely (APPLICATION_OVERVIEW.md)](APPLICATION_OVERVIEW.md)
 
 ---
 
@@ -142,6 +143,9 @@ Systém je navržen a realizován podle zásad čisté MVC architektury se servi
 │  - MySQL 8.0 běžící v Docker kontejneru                                │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+> 💡 **Podrobný přehled uživatelského rozhraní a drátové modely obrazovek (Wireframes):**  
+> Kompletní obrazovkový průchod systémem, textové drátové modely všech pohledů a Mermaid diagram uživatelského toku naleznete v samostatném dokumentu 👉 **[APPLICATION_OVERVIEW.md](APPLICATION_OVERVIEW.md)**.
 
 ---
 

@@ -7,6 +7,16 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 
 ---
 
+## [Unreleased]
+### Přidáno (Added)
+- **Uživatelský manuál a drátové modely obrazovek ([APPLICATION_OVERVIEW.md](APPLICATION_OVERVIEW.md)):**
+  - Detailní popis funkcionality aplikace pro vzdělávací centrum Akademie Trutnov (dashboard metrik, správa katalogu, filtrace, vyhledávání, ochrana invariantů v `CourseService`).
+  - Kompletní uživatelský postup krok za krokem ztvárněný pomocí textových drátových modelů (ASCII Wireframes) pro všechny pohledy aplikace (`index`, `create`, `show`, `edit`, validační chyby, prázdný stav a potvrzení smazání).
+  - Mermaid diagram uživatelského toku (User Flow).
+  - Přehledová matice víceúrovňové validace byznys pravidel (UI, FormRequest, Byznys vrstva).
+
+---
+
 ## [0.2.0] - 2026-10-06
 ### Přidáno (Added)
 - **Kostra Laravel 11/12 aplikace:** Zprovoznění čistého PHP 8.4 backendu bez Livewire.
