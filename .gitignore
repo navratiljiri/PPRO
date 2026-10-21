@@ -54,4 +54,6 @@ mysql-data/
 .phpunit.result.cache
 .phpunit.cache
 auth.json
+*.sqlite*
+/laravel
 

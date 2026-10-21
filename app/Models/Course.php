@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Domain model representing an educational course (Akademie Trutnov)
@@ -80,5 +81,13 @@ class Course extends Model
     public function getFormattedPriceAttribute(): string
     {
         return number_format((float) $this->price, 0, ',', ' ') . ' Kč';
+    }
+
+    /**
+     * 1:N relationship: Terms scheduled for this course
+     */
+    public function courseTerms(): HasMany
+    {
+        return $this->hasMany(CourseTerm::class, 'course_id')->orderBy('start_date', 'asc');
     }
 }

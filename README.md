@@ -105,12 +105,12 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 
 | Požadavek | Návrh a realizace | Stav |
 |---|---|:---:|
-| **3 vrstvy se závislostmi jedním směrem** | UI/Blade (`CourseController`) $\rightarrow$ Byznys logika (`CourseService`) $\rightarrow$ Perzistence (Eloquent model `Course` se Scopy) | **Implementováno (pro Kurz)** |
+| **3 vrstvy se závislostmi jedním směrem** | UI/Blade (`CourseController`, `CourseTermController`, `LecturerController`, `LessonController`) $\rightarrow$ Byznys logika (`CourseService`, `CourseTermService`, `LecturerService`) $\rightarrow$ Perzistence (`Course`, `CourseTerm`, `Lecturer`, `Lesson` modely se Scopy a migracemi) | **Implementováno (Kurz, Termín, Lektor, Lekce)** |
 | **Relační databáze v Dockeru** | MySQL 8.0 kontejner v `docker-compose.yml` | **Připraveno** |
 | **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` | **Implementováno** |
-| **Minimálně 5 entit** | Kurz (hotovo), Termín, Lektor, Student, Přihláška, Lekce, Docházka, Osvědčení | 1/8 hotovo (Kurz) |
-| **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes Lekce), Studenti $\leftrightarrow$ Termíny (přes Přihlášky) | Navrženo |
-| **Automatizované testy** | Feature testy pro katalog, validaci, tvorbu, úpravu i mazání kurzu (`php artisan test`) | **Implementováno (8 testů, 24 ass.)** |
+| **Minimálně 5 entit** | Kurz (hotovo), Termín (hotovo), Lektor (hotovo), Lekce (hotovo), Student, Přihláška, Docházka, Osvědčení | 4/8 hotovo |
+| **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes výukové bloky `Lesson` se střídáním lektorů), Studenti $\leftrightarrow$ Termíny (přes Přihlášky) | **Implementováno (Lektoři $\leftrightarrow$ Termíny)** |
+| **Automatizované testy** | Feature testy pro katalog, validaci, tvorbu, úpravu, střídání lektorů i mazání (`php artisan test`) | **Implementováno (20 testů, 61 ass.)** |
 | **docker compose up** | Kompletní spuštění aplikace i MySQL databáze (`docker-compose.yml` + `Dockerfile`) | **Připraveno** |
 | **Syntetická data** | Žádná reálná data; `CourseSeeder` se vzorovými kurzy Akademie Trutnov | **Implementováno** |
 
@@ -123,22 +123,25 @@ Systém je navržen a realizován podle zásad čisté MVC architektury se servi
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PREZENTAČNÍ VRSTVA (UI)                         │
-│  - app/Http/Controllers/CourseController.php (Route Model Binding)     │
-│  - app/Http/Requests/StoreCourseRequest.php, UpdateCourseRequest.php   │
-│  - resources/views/courses/ (Blade šablony) + Tailwind CSS v4          │
+│  - Controllers: CourseController, CourseTermController,                │
+│    LecturerController, LessonController (Route Model Binding)          │
+│  - Form Requests: Store/Update Course, CourseTerm, Lecturer, Lesson    │
+│  - Views: resources/views/{courses,terms,lecturers}/ + Tailwind CSS v4 │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ volá přes Dependency Injection
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                     APLIKAČNÍ A DOMÉNOVÁ VRSTVA                        │
-│  - app/Services/CourseService.php (byznys pravidla, filtry, validace)  │
+│  - CourseService.php (byznys pravidla, filtry, validace invariantů)   │
+│  - CourseTermService.php (termíny, kapacity učeben, lekce, hodiny)     │
+│  - LecturerService.php (lektoři, agregace hodin, ochrana před smazáním)│
 │  - (v další fázi: RegistrationService, CertificateService)             │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ dotazuje přímo přes Eloquent & Scopes
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                     DATOVÁ A PERZISTENTNÍ VRSTVA                       │
-│  - app/Models/Course.php (Eloquent ORM s Query Scopes)                 │
+│  - Models: Course, CourseTerm, Lecturer, Lesson (Eloquent ORM)         │
 │  - database/migrations/ (verzované migrace schématu)                   │
 │  - MySQL 8.0 běžící v Docker kontejneru                                │
 └────────────────────────────────────────────────────────────────────────┘

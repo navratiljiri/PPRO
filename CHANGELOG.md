@@ -9,6 +9,13 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 
 ## [Unreleased]
 ### Přidáno (Added)
+- **Modul Termíny kurzů (`CourseTerm`), Lektoři (`Lecturer`) a výukové bloky (`Lesson`):**
+  - *Prezentační vrstva:* Kontrolery `CourseTermController`, `LecturerController`, `LessonController` (využívající Route Model Binding), Form Requesty (`StoreCourseTermRequest`, `UpdateCourseTermRequest`, `StoreLecturerRequest`, `UpdateLecturerRequest`, `StoreLessonRequest`).
+  - *Aplikační / Byznys vrstva:* Služby `CourseTermService` a `LecturerService` – validace časových intervalů (začátek před koncem), kapacity učeben ($\ge 1$), zákaz vypsání termínu pro neaktivní kurzy, blokace smazání lektora s naplánovanými lekcemi a agregace statistik výuky.
+  - *Datová vrstva & M:N vazba:* Eloquent modely `CourseTerm`, `Lecturer`, `Lesson` realizující M:N vazbu mezi lektory a termíny skrze výukové lekce (plnění Rozhodnutí 5 – střídání lektorů a přesná evidence hodin). Verzované migrace pro tabulky `lecturers`, `course_terms` a `lessons`.
+  - *Uživatelské rozhraní:* Kompletní responzivní Blade šablony v design systému Akademie Trutnov pro správu lektorů (`lecturers/{index,create,show,edit}`) a termínů (`terms/{index,create,show,edit}`) včetně plánování lekcí a rozšíření hlavní navigace.
+  - *Automatizované testy:* Nové sady testů `LecturerManagementTest` a `CourseTermManagementTest` rozšiřující pokrytí na 20 testů a 61 assercí (`php artisan test`).
+- **Ochrana repozitáře:** Doplnění `.gitignore` o ignorování lokálních SQLite databází (`*.sqlite*`, `/laravel`).
 - **Uživatelský manuál a drátové modely obrazovek ([APPLICATION_OVERVIEW.md](APPLICATION_OVERVIEW.md)):**
   - Detailní popis funkcionality aplikace pro vzdělávací centrum Akademie Trutnov (dashboard metrik, správa katalogu, filtrace, vyhledávání, ochrana invariantů v `CourseService`).
   - Kompletní uživatelský postup krok za krokem ztvárněný pomocí textových drátových modelů (ASCII Wireframes) pro všechny pohledy aplikace (`index`, `create`, `show`, `edit`, validační chyby, prázdný stav a potvrzení smazání).
