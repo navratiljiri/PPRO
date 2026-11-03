@@ -66,10 +66,13 @@
                        class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all {{ request()->routeIs('lecturers.*') ? 'bg-white text-[#1c1917] shadow-xs font-bold border border-[#ebe7df]/60' : 'text-[#78716c] hover:text-[#1c1917] hover:bg-white/60' }}">
                         <span>Lektoři</span>
                     </a>
-                    <span class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#a8a29e] cursor-not-allowed select-none opacity-60" title="Bude implementováno v další fázi (Fáze 4)">
-                        <span>Osvědčení</span>
-                        <span class="text-[9px] font-mono uppercase bg-[#e5dfd5] text-[#78716c] px-1.5 py-0.5 rounded">Fáze 4</span>
-                    </span>
+                    <a href="{{ url('/admin') }}" 
+                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#215a28] bg-[#ecf4ed] hover:bg-[#d8ebd9] border border-[#cde0cf] transition-all cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                        </svg>
+                        <span>Administrace</span>
+                    </a>
                 </nav>
 
                 <!-- Pravá sekce: Tlačítko akce a Hamburger -->
@@ -111,10 +114,10 @@
                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer {{ request()->routeIs('lecturers.*') ? 'bg-white text-[#1c1917] border border-[#ebe7df] font-bold shadow-xs' : 'text-[#78716c] hover:bg-white/60' }}">
                 <span>Lektoři</span>
             </a>
-            <div class="flex items-center justify-between px-3.5 py-2 text-sm font-medium text-[#a8a29e] select-none opacity-60">
-                <span>Osvědčení</span>
-                <span class="text-[10px] font-mono uppercase bg-[#e5dfd5] text-[#78716c] px-1.5 py-0.5 rounded">Fáze 4</span>
-            </div>
+            <a href="{{ url('/admin') }}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#215a28] bg-[#ecf4ed] border border-[#cde0cf]">
+                <span>Administrace (Filament)</span>
+            </a>
             <div class="pt-2 border-t border-[#ebe7df] mt-2">
                 <a href="{{ route('courses.create') }}" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#e8dbcc] text-[#3d2b17] border border-[#d8c5b0] text-xs font-semibold">
                     <svg class="w-3.5 h-3.5 text-[#3d2b17]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">

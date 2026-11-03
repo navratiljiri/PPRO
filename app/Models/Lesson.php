@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Domain model representing an individual teaching lesson/block
@@ -54,5 +55,13 @@ class Lesson extends Model
     public function lecturer(): BelongsTo
     {
         return $this->belongsTo(Lecturer::class, 'lecturer_id');
+    }
+
+    /**
+     * Attendance records recorded for this lesson
+     */
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class, 'lesson_id');
     }
 }

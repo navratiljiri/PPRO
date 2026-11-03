@@ -70,6 +70,68 @@ class CourseTerm extends Model
     }
 
     /**
+     * Enrolled registrations
+     */
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'course_term_id');
+    }
+
+    /**
+     * Active registrations occupying capacity (registered, offered)
+     */
+    public function activeRegistrations(): HasMany
+    {
+        return $this->registrations()->whereIn('status', ['registered', 'offered']);
+    }
+
+    /**
+     * Waiting list registrations ordered by FIFO priority
+     */
+    public function waitingRegistrations(): HasMany
+    {
+        return $this->registrations()->where('status', 'waiting_list')->orderBy('waiting_order', 'asc');
+    }
+
+    /**
+     * M:N relationship: Students enrolled in this term
+     */
+    public function students(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'registrations', 'course_term_id', 'student_id')
+            ->withPivot(['id', 'status', 'waiting_order', 'offer_expires_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Current occupied capacity count
+     */
+    public function getOccupiedCapacityAttribute(): int
+    {
+        return $this->activeRegistrations()->count();
+    }
+
+    /**
+     * Remaining free spots
+     */
+    public function getAvailableCapacityAttribute(): int
+    {
+        return max(0, $this->capacity - $this->occupied_capacity);
+    }
+
+    /**
+     * Occupancy percentage
+     */
+    public function getOccupancyPercentageAttribute(): float
+    {
+        if ($this->capacity <= 0) {
+            return 0.0;
+        }
+
+        return round(($this->occupied_capacity / $this->capacity) * 100, 1);
+    }
+
+    /**
      * Scope filtering by status
      */
     public function scopeStatus(Builder $query, ?string $status): Builder

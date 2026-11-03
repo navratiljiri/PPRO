@@ -8,19 +8,55 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 ---
 
 ## [Unreleased]
+
+---
+
+## [0.3.0] - 2026-11-03
 ### Přidáno (Added)
-- **Modul Termíny kurzů (`CourseTerm`), Lektoři (`Lecturer`) a výukové bloky (`Lesson`):**
-  - *Prezentační vrstva:* Kontrolery `CourseTermController`, `LecturerController`, `LessonController` (využívající Route Model Binding), Form Requesty (`StoreCourseTermRequest`, `UpdateCourseTermRequest`, `StoreLecturerRequest`, `UpdateLecturerRequest`, `StoreLessonRequest`).
-  - *Aplikační / Byznys vrstva:* Služby `CourseTermService` a `LecturerService` – validace časových intervalů (začátek před koncem), kapacity učeben ($\ge 1$), zákaz vypsání termínu pro neaktivní kurzy, blokace smazání lektora s naplánovanými lekcemi a agregace statistik výuky.
-  - *Datová vrstva & M:N vazba:* Eloquent modely `CourseTerm`, `Lecturer`, `Lesson` realizující M:N vazbu mezi lektory a termíny skrze výukové lekce (plnění Rozhodnutí 5 – střídání lektorů a přesná evidence hodin). Verzované migrace pro tabulky `lecturers`, `course_terms` a `lessons`.
-  - *Uživatelské rozhraní:* Kompletní responzivní Blade šablony v design systému Akademie Trutnov pro správu lektorů (`lecturers/{index,create,show,edit}`) a termínů (`terms/{index,create,show,edit}`) včetně plánování lekcí a rozšíření hlavní navigace.
-  - *Automatizované testy:* Nové sady testů `LecturerManagementTest` a `CourseTermManagementTest` rozšiřující pokrytí na 20 testů a 61 assercí (`php artisan test`).
-- **Ochrana repozitáře:** Doplnění `.gitignore` o ignorování lokálních SQLite databází (`*.sqlite*`, `/laravel`).
-- **Uživatelský manuál a drátové modely obrazovek ([APPLICATION_OVERVIEW.md](APPLICATION_OVERVIEW.md)):**
-  - Detailní popis funkcionality aplikace pro vzdělávací centrum Akademie Trutnov (dashboard metrik, správa katalogu, filtrace, vyhledávání, ochrana invariantů v `CourseService`).
-  - Kompletní uživatelský postup krok za krokem ztvárněný pomocí textových drátových modelů (ASCII Wireframes) pro všechny pohledy aplikace (`index`, `create`, `show`, `edit`, validační chyby, prázdný stav a potvrzení smazání).
-  - Mermaid diagram uživatelského toku (User Flow).
-  - Přehledová matice víceúrovňové validace byznys pravidel (UI, FormRequest, Byznys vrstva).
+- **Kompletní doménový a datový model (všech 8 entit ze Zadání C):**
+  - Entita `Student` (`students`): evidence studentů (jméno, příjmení, unikátní e-mail, telefon) a vazba na přihlášky.
+  - Entita `Registration` (`registrations`): přihlášky studentů na termíny, stavový automat (`registered`, `waiting_list`, `offered`, `cancelled`, `completed`), FIFO pořadí náhradníků (`waiting_order`), časový zámek nabídky (`offer_expires_at`) a auditní důvod storna (`cancellation_reason`).
+  - Entita `AttendanceRecord` (`attendance_records`): detailní evidence přítomnosti studentů na jednotlivých lekcích termínu včetně poznámek lektora.
+  - Entita `Certificate` (`certificates`): vydaná osvědčení o absolvování s garantovaným unikátním formátem čísla `AT-YYYY-XXXXX`, datem vydání a formálním schválením lektora. Zajištěna striktní neměnnost a zákaz smazání na úrovni modelu.
+  - Verzované migrace pro všech 8 entit a vazeb (`2026_10_08_100000_create_students_table.php`, `2026_10_08_100100_create_registrations_table.php`, `2026_10_08_100200_create_attendance_records_table.php`, `2026_10_08_100300_create_certificates_table.php`).
+- **Aplikační a byznys vrstva (Services) vynucující obchodní pravidla:**
+  - `RegistrationService`:
+    - Striktní nepřekročitelnost kapacity termínu ani při souběhu požadavků (uzamykání řádků transakcemi).
+    - Automatické zařazení do FIFO pořadníku při vyčerpání kapacity se sekvenčním číslováním.
+    - Zákaz souběžných aktivních přihlášek na stejný kurz v různých termínech (Rozhodnutí 3).
+    - Systémový zákaz přihlášení po zahájení termínu s administrativní výjimkou omezenou na maximálně 20 % výuky (Rozhodnutí 4).
+    - Auditovatelnost: Zrušené přihlášky se fyzicky nemažou z databáze; zaznamenává se důvod storna.
+    - Poloautomatický posun z pořadníku (Rozhodnutí 2): při uvolnění místa systém automaticky nabídne místo prvnímu náhradníkovi s 24hodinovým časovým zámkem.
+  - `AttendanceService`:
+    - Zápis a hromadná aktualizace docházky pro konkrétní lekci.
+    - Výpočet procentuální docházky studenta a kontrola nutné podmínky 70% účasti (Rozhodnutí 1).
+  - `CertificateService`:
+    - Dvoustupňový model certifikace: ověření 70% docházky (nebo schválené administrátorské výjimky) + pedagogické potvrzení lektora.
+    - Automatické generování unikátního sekvenčního čísla osvědčení v daném roce.
+    - Změna stavu přihlášky na `completed` a trvalé uzamčení certifikátu proti změnám.
+  - `StatisticService`:
+    - Přehled naplněnosti jednotlivých termínů (v procentech i počtech).
+    - Souhrn odučených hodin za jednotlivé externí lektory ve zvoleném období.
+    - Detekce a výpis studentů zapsaných v daném roce na více než jeden kurz (Požadavek 8).
+- **Kompletní administrace ve Filament PHP (`/admin`):**
+  - Implementován dedikovaný administrační panel s vizuální identitou Akademie Trutnov (Emerald barvy, české popisky a navigace).
+  - 8 plnohodnotných Resource modulů:
+    - `CourseResource`: Správa nabídky kurzů, akreditace MŠMT/MPSV, cen a stavu.
+    - `CourseTermResource`: Správa termínů, kapacity, učeben, vizualizace obsazenosti a pořadníku náhradníků.
+    - `LecturerResource`: Evidence externích lektorů a statistiky odučených hodin.
+    - `LessonResource`: Rozvrhování výukových bloků se střídáním lektorů u vícedenních kurzů (Rozhodnutí 5).
+    - `StudentResource`: Evidence účastníků a historie jejich přihlášek.
+    - `RegistrationResource`: Správa přihlášek, auditní zrušení přihlášky s odůvodněním, přijetí/odmítnutí nabídky z pořadníku, vystavení osvědčení, zákaz fyzického mazání.
+    - `AttendanceRecordResource`: Evidence docházky a omluvenek po lekcích.
+    - `CertificateResource`: Matrika vydaných osvědčení v read-only režimu (garance neměnnosti).
+  - Dashboard widgety: `AkademieStatsOverview` (karty metrik) a `TermOccupancyTableWidget` (přehled naplněnosti termínů).
+  - Navigační propojení mezi veřejným katalogem a administrací.
+- **Syntetická data a administrátorský účet (`DatabaseSeeder`):**
+  - Vytvoření administrátorského účtu: `admin@akademietrutnov.cz` (heslo: `admin123`).
+  - Vzorové kurzy, externí lektoři, termíny s malou i velkou kapacitou, lekce se střídáním lektorů, studenti, aktivní registrace, FIFO náhradníci v pořadníku i dokončený kurz s vydaným osvědčením.
+- **Automatizované testy:**
+  - Nové testovací sady: `RegistrationBusinessRulesTest`, `CertificateAndAttendanceTest`, `StatisticServiceTest`, `FilamentAdminTest`.
+  - Celkem 34 automatizovaných testů (114 assercí), všechny úspěšně procházejí (`php artisan test`).
 
 ---
 
@@ -33,7 +69,7 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
   - *Aplikační vrstva:* `CourseService` zapouzdřující byznys invarianty (unikátnost kódu, nezáporná cena, $\ge 1$ hodina, filtry a výpočet statistik).
   - *Datová vrstva:* Eloquent model `Course` s přímými Query Scopes (`active`, `accredited`, `search`) a migrace `courses`. Bez nadbytečných repozitářů a rozhraní.
 - **Automatizované testy:** 8 Feature testů v `CourseManagementTest.php` a `ExampleTest.php` (24 assercí, všechny procházejí).
-- **Syntetická data:** `CourseSeeder` s reálnými rekvalifikačními kurzy (účetnictví, programování, management).
+- **Syntetická data:** `CourseSeeder` se vzorovými rekvalifikačními kurzy (účetnictví, programování, management).
 - **Kontejnerizace & Docker:** `Dockerfile` (PHP 8.4 Apache) a `docker-compose.yml` (aplikace + MySQL 8.0 databáze).
 
 ---

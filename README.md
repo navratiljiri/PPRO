@@ -105,28 +105,29 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 
 | Požadavek | Návrh a realizace | Stav |
 |---|---|:---:|
-| **3 vrstvy se závislostmi jedním směrem** | UI/Blade (`CourseController`, `CourseTermController`, `LecturerController`, `LessonController`) $\rightarrow$ Byznys logika (`CourseService`, `CourseTermService`, `LecturerService`) $\rightarrow$ Perzistence (`Course`, `CourseTerm`, `Lecturer`, `Lesson` modely se Scopy a migracemi) | **Implementováno (Kurz, Termín, Lektor, Lekce)** |
-| **Relační databáze v Dockeru** | MySQL 8.0 kontejner v `docker-compose.yml` | **Připraveno** |
-| **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` | **Implementováno** |
-| **Minimálně 5 entit** | Kurz (hotovo), Termín (hotovo), Lektor (hotovo), Lekce (hotovo), Student, Přihláška, Docházka, Osvědčení | 4/8 hotovo |
-| **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes výukové bloky `Lesson` se střídáním lektorů), Studenti $\leftrightarrow$ Termíny (přes Přihlášky) | **Implementováno (Lektoři $\leftrightarrow$ Termíny)** |
-| **Automatizované testy** | Feature testy pro katalog, validaci, tvorbu, úpravu, střídání lektorů i mazání (`php artisan test`) | **Implementováno (20 testů, 61 ass.)** |
+| **3 vrstvy se závislostmi jedním směrem** | UI/Blade + Administrace Filament PHP (`/admin`) $\rightarrow$ Aplikační byznys logika (`CourseService`, `CourseTermService`, `LecturerService`, `RegistrationService`, `AttendanceService`, `CertificateService`, `StatisticService`) $\rightarrow$ Perzistence (`Course`, `CourseTerm`, `Lecturer`, `Lesson`, `Student`, `Registration`, `AttendanceRecord`, `Certificate`) | **Kompletně implementováno (8 entit + 7 aplikačních služeb)** |
+| **Relační databáze v Dockeru** | MySQL 8.0 kontejner v `docker-compose.yml` | **Implementováno & Kontejnerizováno** |
+| **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` pro všech 8 entit a vazeb | **Implementováno (11 migrací)** |
+| **Minimálně 5 entit** | Kurz, Termín, Lektor, Lekce, Student, Přihláška, Docházka, Osvědčení | **8/8 hotovo (100 % modelu)** |
+| **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes výukové lekce `Lesson`), Studenti $\leftrightarrow$ Termíny (přes přihlášky `Registration`) | **Implementováno (2 vazby M:N)** |
+| **Automatizované testy** | Feature testy pro kapacity, FIFO pořadník, neměnnost osvědčení, 70% docházku, statistiky a Filament administraci (`php artisan test`) | **Implementováno (34 testů, 114 ass.)** |
 | **docker compose up** | Kompletní spuštění aplikace i MySQL databáze (`docker-compose.yml` + `Dockerfile`) | **Připraveno** |
-| **Syntetická data** | Žádná reálná data; `CourseSeeder` se vzorovými kurzy Akademie Trutnov | **Implementováno** |
+| **Syntetická data** | Žádná reálná data; `DatabaseSeeder` s kompletními daty, správcem a vzorovými stavy | **Implementováno** |
 
 ---
 
 ## 7. Architektonický návrh
 
-Systém je navržen a realizován podle zásad čisté MVC architektury se servisní vrstvou v PHP Laravel:
+Systém je navržen a realizován podle zásad čisté MVC architektury se servisní vrstvou v PHP Laravel a rozhraním Filament PHP:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PREZENTAČNÍ VRSTVA (UI)                         │
-│  - Controllers: CourseController, CourseTermController,                │
-│    LecturerController, LessonController (Route Model Binding)          │
-│  - Form Requests: Store/Update Course, CourseTerm, Lecturer, Lesson    │
-│  - Views: resources/views/{courses,terms,lecturers}/ + Tailwind CSS v4 │
+│  - Veřejný katalog: Blade + Tailwind CSS v4 (Course, Term, Lecturer)  │
+│  - Administrační rozhraní: Filament PHP Panel (/admin)                │
+│    (CourseResource, CourseTermResource, LecturerResource,             │
+│     LessonResource, StudentResource, RegistrationResource,            │
+│     AttendanceRecordResource, CertificateResource + Dashboard Widgets) │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ volá přes Dependency Injection
                                     ▼
@@ -135,14 +136,18 @@ Systém je navržen a realizován podle zásad čisté MVC architektury se servi
 │  - CourseService.php (byznys pravidla, filtry, validace invariantů)   │
 │  - CourseTermService.php (termíny, kapacity učeben, lekce, hodiny)     │
 │  - LecturerService.php (lektoři, agregace hodin, ochrana před smazáním)│
-│  - (v další fázi: RegistrationService, CertificateService)             │
+│  - RegistrationService.php (kapacita, FIFO pořadník, posun, zákaz souběhu)│
+│  - AttendanceService.php (zápis docházky, vyhodnocení 70% podmínky)    │
+│  - CertificateService.php (generování čísel, neměnnost, schválení)     │
+│  - StatisticService.php (naplněnost, odučené hodiny, studenti > 1 kurz)│
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ dotazuje přímo přes Eloquent & Scopes
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                     DATOVÁ A PERZISTENTNÍ VRSTVA                       │
-│  - Models: Course, CourseTerm, Lecturer, Lesson (Eloquent ORM)         │
-│  - database/migrations/ (verzované migrace schématu)                   │
+│  - Models: Course, CourseTerm, Lecturer, Lesson, Student,              │
+│            Registration, AttendanceRecord, Certificate, User           │
+│  - database/migrations/ (11 verzovaných migrací schématu)              │
 │  - MySQL 8.0 běžící v Docker kontejneru                                │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -262,6 +267,12 @@ docker compose up -d
 # 3. Kontrola logů
 docker compose logs -f
 ```
+
+### Přístupy do aplikace
+- **Veřejný web a katalog kurzů:** [http://localhost:8000](http://localhost:8000)
+- **Administrace Filament PHP:** [http://localhost:8000/admin](http://localhost:8000/admin)
+  - **Přihlašovací e-mail:** `admin@akademietrutnov.cz`
+  - **Heslo:** `admin123`
 
 ---
 
