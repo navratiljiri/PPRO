@@ -15,13 +15,17 @@ class CertificateForm
         return $schema
             ->components([
                 Select::make('registration_id')
+                    ->label('Přihláška')
                     ->relationship('registration', 'id')
                     ->required(),
                 TextInput::make('certificate_number')
+                    ->label('Číslo osvědčení')
                     ->required(),
                 DatePicker::make('issue_date')
+                    ->label('Datum vydání')
                     ->required(),
                 Toggle::make('lecturer_approved')
+                    ->label('Schváleno lektorem')
                     ->required(),
             ]);
     }

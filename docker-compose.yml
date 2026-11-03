@@ -11,6 +11,8 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      - APP_LOCALE=cs
+      - APP_FALLBACK_LOCALE=en
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306

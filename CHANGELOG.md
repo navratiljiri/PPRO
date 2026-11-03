@@ -8,6 +8,13 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 ---
 
 ## [Unreleased]
+### Změněno (Changed)
+- **Lokalizace do češtiny:** Výchozí jazyk aplikace přepnut na `cs` (`config/app.php`, `.env.example`, `docker-compose.yml`), faker na `cs_CZ`. Vestavěné texty Filament PHP (tlačítka, přihlášení, filtry, stránkování, notifikace) se tak zobrazují česky.
+- Přeloženy všechny detailní pohledy (infolisty) administrace – kurzy, termíny, lektoři, lekce, studenti, přihlášky, docházka a osvědčení. Místo interních ID se zobrazují názvy kurzů a jména studentů a lektorů; stavy se zobrazují jako české štítky.
+
+### Přidáno (Added)
+- České jazykové soubory `lang/cs/` (`validation.php` včetně českých názvů atributů, `auth.php`, `passwords.php`, `pagination.php`).
+- Test `FilamentLocalizationTest` ověřující české locale, český přihlašovací formulář a české popisky všech detailních stránek administrace (celkem 37 testů, 167 assercí).
 
 ---
 

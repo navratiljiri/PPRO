@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Lessons\Schemas;
 
+use App\Models\Lesson;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -11,23 +12,34 @@ class LessonInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('courseTerm.id')
-                    ->label('Course term'),
-                TextEntry::make('lecturer.id')
-                    ->label('Lecturer'),
+                TextEntry::make('course_term_label')
+                    ->label('Termín kurzu')
+                    ->state(fn (Lesson $record): string => $record->courseTerm
+                        ? "{$record->courseTerm->course?->name} ({$record->courseTerm->classroom}, {$record->courseTerm->formatted_date_range})"
+                        : '—'),
+                TextEntry::make('lecturer.full_name')
+                    ->label('Vyučující lektor')
+                    ->placeholder('—'),
                 TextEntry::make('starts_at')
-                    ->dateTime(),
+                    ->label('Začátek lekce')
+                    ->dateTime('d. m. Y H:i'),
                 TextEntry::make('ends_at')
-                    ->dateTime(),
+                    ->label('Konec lekce')
+                    ->dateTime('d. m. Y H:i'),
                 TextEntry::make('duration_hours')
-                    ->numeric(),
-                TextEntry::make('topic'),
+                    ->label('Délka výuky')
+                    ->numeric()
+                    ->suffix(' vyuč. hodin'),
+                TextEntry::make('topic')
+                    ->label('Téma výuky / Osnova'),
                 TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Vytvořeno')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
                 TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Naposledy upraveno')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
             ]);
     }
 }

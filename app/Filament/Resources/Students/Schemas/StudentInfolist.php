@@ -11,18 +11,23 @@ class StudentInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('first_name'),
-                TextEntry::make('last_name'),
+                TextEntry::make('first_name')
+                    ->label('Jméno'),
+                TextEntry::make('last_name')
+                    ->label('Příjmení'),
                 TextEntry::make('email')
-                    ->label('Email address'),
+                    ->label('E-mail'),
                 TextEntry::make('phone')
-                    ->placeholder('-'),
+                    ->label('Telefon')
+                    ->placeholder('—'),
                 TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Registrován v systému')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
                 TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Naposledy upraveno')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
             ]);
     }
 }

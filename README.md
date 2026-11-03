@@ -110,7 +110,7 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 | **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` pro všech 8 entit a vazeb | **Implementováno (11 migrací)** |
 | **Minimálně 5 entit** | Kurz, Termín, Lektor, Lekce, Student, Přihláška, Docházka, Osvědčení | **8/8 hotovo (100 % modelu)** |
 | **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes výukové lekce `Lesson`), Studenti $\leftrightarrow$ Termíny (přes přihlášky `Registration`) | **Implementováno (2 vazby M:N)** |
-| **Automatizované testy** | Feature testy pro kapacity, FIFO pořadník, neměnnost osvědčení, 70% docházku, statistiky a Filament administraci (`php artisan test`) | **Implementováno (34 testů, 114 ass.)** |
+| **Automatizované testy** | Feature testy pro kapacity, FIFO pořadník, neměnnost osvědčení, 70% docházku, statistiky a Filament administraci včetně české lokalizace (`php artisan test`) | **Implementováno (37 testů, 167 ass.)** |
 | **docker compose up** | Kompletní spuštění aplikace i MySQL databáze (`docker-compose.yml` + `Dockerfile`) | **Připraveno** |
 | **Syntetická data** | Žádná reálná data; `DatabaseSeeder` s kompletními daty, správcem a vzorovými stavy | **Implementováno** |
 
@@ -281,6 +281,7 @@ docker compose logs -f
 Projekt striktně dodržuje provozní zásady specifikované v [AGENTS.md](file:///c:/Develop/PPRO/AGENTS.md):
 - **Commity:** Vždy s přepínačem `-m` a věcným popisem změn (Conventional Commits).
 - **Push do remote repozitáře:** VÝHRADNĚ po explicitním pokynu uživatele.
+- **Jazyk:** Kód, DB schéma a routy anglicky; uživatelské rozhraní česky (výchozí locale `cs`, překlady v `lang/cs/`, Filament používá vlastní české překlady).
 - **Dokumentace:** `README.md` je udržován neustále aktuální jako jediný zdroj pravdy; změny se evidují před každým commitem.
 - **Git pre-commit hook:** Automaticky ověřuje integritu dokumentace a zakazuje commit nechtěných souborů.
 

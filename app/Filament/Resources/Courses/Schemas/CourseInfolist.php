@@ -12,23 +12,44 @@ class CourseInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('code'),
-                TextEntry::make('name'),
+                TextEntry::make('code')
+                    ->label('Kód kurzu'),
+                TextEntry::make('name')
+                    ->label('Název kurzu'),
                 TextEntry::make('annotation')
+                    ->label('Podrobná anotace')
                     ->columnSpanFull(),
                 TextEntry::make('duration_hours')
-                    ->numeric(),
+                    ->label('Hodinový rozsah')
+                    ->numeric()
+                    ->suffix(' vyuč. hodin'),
                 TextEntry::make('price')
-                    ->money(),
+                    ->label('Základní cena')
+                    ->money('CZK', locale: 'cs'),
                 IconEntry::make('is_accredited')
+                    ->label('Akreditovaný kurz (MŠMT / MPSV)')
                     ->boolean(),
-                TextEntry::make('status'),
+                TextEntry::make('status')
+                    ->label('Stav kurzu')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'active' => 'Aktivní',
+                        'archived' => 'Archivováno',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'active' => 'success',
+                        'archived' => 'danger',
+                        default => 'gray',
+                    }),
                 TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Vytvořeno')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
                 TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Naposledy upraveno')
+                    ->dateTime('d. m. Y H:i')
+                    ->placeholder('—'),
             ]);
     }
 }
