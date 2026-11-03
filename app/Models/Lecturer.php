@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,19 +54,43 @@ class Lecturer extends Model
     }
 
     /**
+     * Capitalize first name
+     */
+    protected function firstName(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value ? ucfirst($value) : '',
+        );
+    }
+
+    /**
+     * Capitalize last name
+     */
+    protected function lastName(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value ? ucfirst($value) : '',
+        );
+    }
+
+    /**
      * Full name accessor
      */
-    public function getFullNameAttribute(): string
+    protected function fullName(): Attribute
     {
-        return "{$this->first_name} {$this->last_name}";
+        return Attribute::make(
+            get: fn () => "{$this->first_name} {$this->last_name}",
+        );
     }
 
     /**
      * Total hours taught across all lessons
      */
-    public function getTotalTaughtHoursAttribute(): int
+    protected function totalTaughtHours(): Attribute
     {
-        return (int) $this->lessons()->sum('duration_hours');
+        return Attribute::make(
+            get: fn () => (int) $this->lessons()->sum('duration_hours'),
+        );
     }
 
     /**

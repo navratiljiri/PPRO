@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -109,52 +110,60 @@ class Registration extends Model
     /**
      * Status label in Czech
      */
-    public function getStatusLabelAttribute(): string
+    protected function statusLabel(): Attribute
     {
-        return match ($this->status) {
-            'registered' => 'Zaregistrováno',
-            'waiting_list' => 'V pořadníku (náhradník)',
-            'offered' => 'Nabídnuto uvolněné místo',
-            'cancelled' => 'Zrušeno',
-            'completed' => 'Absolvováno',
-            default => $this->status,
-        };
+        return Attribute::make(
+            get: fn () => match ($this->status) {
+                'registered' => 'Zaregistrováno',
+                'waiting_list' => 'V pořadníku (náhradník)',
+                'offered' => 'Nabídnuto uvolněné místo',
+                'cancelled' => 'Zrušeno',
+                'completed' => 'Absolvováno',
+                default => $this->status,
+            },
+        );
     }
 
     /**
      * Status color for badges
      */
-    public function getStatusColorAttribute(): string
+    protected function statusColor(): Attribute
     {
-        return match ($this->status) {
-            'registered' => 'success',
-            'waiting_list' => 'warning',
-            'offered' => 'info',
-            'cancelled' => 'danger',
-            'completed' => 'gray',
-            default => 'secondary',
-        };
+        return Attribute::make(
+            get: fn () => match ($this->status) {
+                'registered' => 'success',
+                'waiting_list' => 'warning',
+                'offered' => 'info',
+                'cancelled' => 'danger',
+                'completed' => 'gray',
+                default => 'secondary',
+            },
+        );
     }
 
     /**
      * Calculate attendance percentage for this registration
      */
-    public function getAttendancePercentageAttribute(): float
+    protected function attendancePercentage(): Attribute
     {
-        $term = $this->courseTerm;
-        if (!$term) {
-            return 0.0;
-        }
+        return Attribute::make(
+            get: function () {
+                $term = $this->courseTerm;
+                if (!$term) {
+                    return 0.0;
+                }
 
-        $totalLessons = $term->lessons()->count();
-        if ($totalLessons === 0) {
-            return 0.0;
-        }
+                $totalLessons = $term->lessons()->count();
+                if ($totalLessons === 0) {
+                    return 0.0;
+                }
 
-        $presentLessons = $this->attendanceRecords()
-            ->where('is_present', true)
-            ->count();
+                $presentLessons = $this->attendanceRecords()
+                    ->where('is_present', true)
+                    ->count();
 
-        return round(($presentLessons / $totalLessons) * 100, 1);
+                return round(($presentLessons / $totalLessons) * 100, 1);
+            },
+        );
     }
 }

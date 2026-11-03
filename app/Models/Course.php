@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -78,9 +79,11 @@ class Course extends Model
     /**
      * Helper accessor for price formatted in Czech koruna
      */
-    public function getFormattedPriceAttribute(): string
+    protected function formattedPrice(): Attribute
     {
-        return number_format((float) $this->price, 0, ',', ' ') . ' Kč';
+        return Attribute::make(
+            get: fn () => number_format((float) $this->price, 0, ',', ' ') . ' Kč',
+        );
     }
 
     /**

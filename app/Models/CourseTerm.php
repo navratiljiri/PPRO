@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -106,29 +107,36 @@ class CourseTerm extends Model
     /**
      * Current occupied capacity count
      */
-    public function getOccupiedCapacityAttribute(): int
+    protected function occupiedCapacity(): Attribute
     {
-        return $this->activeRegistrations()->count();
+        return Attribute::make(
+            get: fn () => $this->activeRegistrations()->count(),
+        );
     }
 
     /**
      * Remaining free spots
      */
-    public function getAvailableCapacityAttribute(): int
+    protected function availableCapacity(): Attribute
     {
-        return max(0, $this->capacity - $this->occupied_capacity);
+        return Attribute::make(
+            get: fn () => max(0, $this->capacity - $this->occupied_capacity),
+        );
     }
 
     /**
      * Occupancy percentage
      */
-    public function getOccupancyPercentageAttribute(): float
+    protected function occupancyPercentage(): Attribute
     {
-        if ($this->capacity <= 0) {
-            return 0.0;
-        }
-
-        return round(($this->occupied_capacity / $this->capacity) * 100, 1);
+        return Attribute::make(
+            get: function () {
+                if ($this->capacity <= 0) {
+                    return 0.0;
+                }
+                return round(($this->occupied_capacity / $this->capacity) * 100, 1);
+            },
+        );
     }
 
     /**
@@ -146,44 +154,52 @@ class CourseTerm extends Model
     /**
      * Status label in Czech
      */
-    public function getStatusLabelAttribute(): string
+    protected function statusLabel(): Attribute
     {
-        return match ($this->status) {
-            'enrolling' => 'Zápis otevřen',
-            'in_progress' => 'Probíhá',
-            'completed' => 'Dokončeno',
-            'cancelled' => 'Zrušeno',
-            default => $this->status,
-        };
+        return Attribute::make(
+            get: fn () => match ($this->status) {
+                'enrolling' => 'Zápis otevřen',
+                'in_progress' => 'Probíhá',
+                'completed' => 'Dokončeno',
+                'cancelled' => 'Zrušeno',
+                default => $this->status,
+            },
+        );
     }
 
     /**
      * Status badge CSS classes
      */
-    public function getStatusBadgeClassesAttribute(): string
+    protected function statusBadgeClasses(): Attribute
     {
-        return match ($this->status) {
-            'enrolling' => 'bg-[#ecf4ed] text-[#215a28] border-[#cde0cf]',
-            'in_progress' => 'bg-[#fdf6ec] text-[#9a5b13] border-[#f5dfc6]',
-            'completed' => 'bg-[#f2eee9] text-[#78716c] border-[#ebe7df]',
-            'cancelled' => 'bg-[#fdf2f2] text-[#991b1b] border-[#fecaca]',
-            default => 'bg-[#f2eee9] text-[#78716c] border-[#ebe7df]',
-        };
+        return Attribute::make(
+            get: fn () => match ($this->status) {
+                'enrolling' => 'bg-[#ecf4ed] text-[#215a28] border-[#cde0cf]',
+                'in_progress' => 'bg-[#fdf6ec] text-[#9a5b13] border-[#f5dfc6]',
+                'completed' => 'bg-[#f2eee9] text-[#78716c] border-[#ebe7df]',
+                'cancelled' => 'bg-[#fdf2f2] text-[#991b1b] border-[#fecaca]',
+                default => 'bg-[#f2eee9] text-[#78716c] border-[#ebe7df]',
+            },
+        );
     }
 
     /**
      * Formatted date range in Czech locale
      */
-    public function getFormattedDateRangeAttribute(): string
+    protected function formattedDateRange(): Attribute
     {
-        return $this->start_date->format('d. m. Y') . ' – ' . $this->end_date->format('d. m. Y');
+        return Attribute::make(
+            get: fn () => $this->start_date->format('d. m. Y') . ' – ' . $this->end_date->format('d. m. Y'),
+        );
     }
 
     /**
      * Sum of duration hours across all scheduled lessons
      */
-    public function getTotalLessonHoursAttribute(): int
+    protected function totalLessonHours(): Attribute
     {
-        return (int) $this->lessons()->sum('duration_hours');
+        return Attribute::make(
+            get: fn () => (int) $this->lessons()->sum('duration_hours'),
+        );
     }
 }
