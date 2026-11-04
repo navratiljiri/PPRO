@@ -13,7 +13,9 @@ class ListCertificates extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Vystavit osvědčení')
+                ->icon('heroicon-o-academic-cap'),
         ];
     }
 }

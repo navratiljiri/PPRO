@@ -2,17 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Courses\Pages\CreateCourse;
+use App\Filament\Resources\Courses\Pages\EditCourse;
 use App\Models\Course;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
+/**
+ * Public catalog is read-only; course administration happens only in Filament (/admin).
+ */
 class CourseManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_displays_the_courses_catalog(): void
+    private function course(array $overrides = []): Course
     {
-        Course::create([
+        return Course::create(array_merge([
             'code' => 'TST-01',
             'name' => 'Testovací kurz účetnictví',
             'annotation' => 'Popis testovacího kurzu pro ověření katalogu.',
@@ -20,37 +27,36 @@ class CourseManagementTest extends TestCase
             'price' => 8500.00,
             'is_accredited' => true,
             'status' => 'active',
-        ]);
+        ], $overrides));
+    }
+
+    private function actingAsAdmin(): void
+    {
+        $this->actingAs(User::create([
+            'name' => 'Správce',
+            'email' => 'admin@example.test',
+            'password' => bcrypt('secret'),
+        ]));
+    }
+
+    public function test_it_displays_the_courses_catalog(): void
+    {
+        $this->course();
 
         $response = $this->get('/courses');
 
         $response->assertStatus(200);
-        $response->assertSee('Katalog a správa kurzů');
+        $response->assertSee('Katalog kurzů');
         $response->assertSee('Testovací kurz účetnictví');
         $response->assertSee('TST-01');
+        $response->assertDontSee('Vytvořit nový kurz');
+        $response->assertDontSee('Upravit');
     }
 
     public function test_it_filters_accredited_courses(): void
     {
-        Course::create([
-            'code' => 'AKR-01',
-            'name' => 'Akreditovaný kurz MŠMT',
-            'annotation' => 'Tento kurz má akreditaci.',
-            'duration_hours' => 50,
-            'price' => 12000.00,
-            'is_accredited' => true,
-            'status' => 'active',
-        ]);
-
-        Course::create([
-            'code' => 'NEAKR-01',
-            'name' => 'Obyčejný firemní workshop',
-            'annotation' => 'Tento kurz nemá akreditaci.',
-            'duration_hours' => 10,
-            'price' => 3000.00,
-            'is_accredited' => false,
-            'status' => 'active',
-        ]);
+        $this->course(['code' => 'AKR-01', 'name' => 'Akreditovaný kurz MŠMT']);
+        $this->course(['code' => 'NEAKR-01', 'name' => 'Obyčejný firemní workshop', 'is_accredited' => false]);
 
         $response = $this->get('/courses?filter=accredited');
 
@@ -59,20 +65,40 @@ class CourseManagementTest extends TestCase
         $response->assertDontSee('Obyčejný firemní workshop');
     }
 
-    public function test_it_can_create_a_course_via_form(): void
+    public function test_public_website_has_no_course_administration(): void
     {
-        $payload = [
-            'code' => 'NOV-01',
-            'name' => 'Nový kurz digitálních dovedností',
-            'annotation' => 'Komplexní přehled digitálních nástrojů pro kancelář.',
-            'duration_hours' => 30,
-            'price' => 5900.00,
-            'is_accredited' => '1',
-        ];
+        $course = $this->course();
 
-        $response = $this->post('/courses', $payload);
+        $this->get('/courses/create')->assertNotFound();
+        $this->get("/courses/{$course->id}/edit")->assertNotFound();
+        $this->post('/courses', ['code' => 'X'])->assertStatus(405);
+        $this->put("/courses/{$course->id}", [])->assertStatus(405);
+        $this->delete("/courses/{$course->id}")->assertStatus(405);
 
-        $response->assertRedirect();
+        $this->get("/courses/{$course->id}")
+            ->assertOk()
+            ->assertDontSee('Upravit kurz')
+            ->assertDontSee('Smazat');
+    }
+
+    public function test_admin_can_create_a_course_in_filament(): void
+    {
+        $this->actingAsAdmin();
+
+        Livewire::test(CreateCourse::class)
+            ->fillForm([
+                'code' => 'nov-01',
+                'name' => 'Nový kurz digitálních dovedností',
+                'annotation' => 'Komplexní přehled digitálních nástrojů pro kancelář.',
+                'duration_hours' => 30,
+                'price' => 5900,
+                'is_accredited' => true,
+                'status' => 'active',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        // CourseService normalises the code to upper case
         $this->assertDatabaseHas('courses', [
             'code' => 'NOV-01',
             'name' => 'Nový kurz digitálních dovedností',
@@ -80,78 +106,45 @@ class CourseManagementTest extends TestCase
         ]);
     }
 
-    public function test_it_validates_required_fields_and_uniqueness(): void
+    public function test_filament_validates_required_fields_and_uniqueness(): void
     {
-        Course::create([
-            'code' => 'DUP-01',
-            'name' => 'Původní kurz',
-            'annotation' => 'Platná anotace původního kurzu.',
-            'duration_hours' => 20,
-            'price' => 4000.00,
-            'is_accredited' => false,
-            'status' => 'active',
-        ]);
+        $this->actingAsAdmin();
+        $this->course(['code' => 'DUP-01']);
 
-        // Attempt creation with duplicate code and missing name
-        $response = $this->post('/courses', [
-            'code' => 'DUP-01',
-            'name' => '',
-            'annotation' => 'Short',
-            'duration_hours' => 0,
-            'price' => -100,
-        ]);
+        Livewire::test(CreateCourse::class)
+            ->fillForm([
+                'code' => 'DUP-01',
+                'name' => '',
+                'annotation' => 'Platná anotace',
+                'duration_hours' => 0,
+                'price' => -100,
+                'status' => 'active',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['code', 'name', 'duration_hours', 'price']);
 
-        $response->assertSessionHasErrors(['code', 'name', 'annotation', 'duration_hours', 'price']);
+        $this->assertSame(1, Course::count());
     }
 
-    public function test_it_can_update_a_course(): void
+    public function test_admin_can_update_a_course_in_filament(): void
     {
-        $course = Course::create([
-            'code' => 'UPD-01',
-            'name' => 'Před úpravou',
-            'annotation' => 'Stará anotace kurzu před úpravou.',
-            'duration_hours' => 20,
-            'price' => 5000.00,
-            'is_accredited' => false,
-            'status' => 'active',
-        ]);
+        $this->actingAsAdmin();
+        $course = $this->course(['code' => 'UPD-01', 'name' => 'Před úpravou', 'is_accredited' => false]);
 
-        $response = $this->put("/courses/{$course->id}", [
-            'code' => 'UPD-01',
-            'name' => 'Po úspěšné úpravě',
-            'annotation' => 'Aktualizovaná a rozšířená anotace kurzu.',
-            'duration_hours' => 25,
-            'price' => 6000.00,
-            'is_accredited' => '1',
-            'status' => 'active',
-        ]);
+        Livewire::test(EditCourse::class, ['record' => $course->getRouteKey()])
+            ->fillForm([
+                'name' => 'Po úspěšné úpravě',
+                'price' => 6000,
+                'is_accredited' => true,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
-        $response->assertRedirect();
         $this->assertDatabaseHas('courses', [
             'id' => $course->id,
             'name' => 'Po úspěšné úpravě',
             'price' => 6000.00,
             'is_accredited' => true,
-        ]);
-    }
-
-    public function test_it_can_delete_a_course(): void
-    {
-        $course = Course::create([
-            'code' => 'DEL-01',
-            'name' => 'Kurz ke smazání',
-            'annotation' => 'Tento kurz bude bezpečně odstraněn.',
-            'duration_hours' => 10,
-            'price' => 2000.00,
-            'is_accredited' => false,
-            'status' => 'active',
-        ]);
-
-        $response = $this->delete("/courses/{$course->id}");
-
-        $response->assertRedirect('/courses');
-        $this->assertDatabaseMissing('courses', [
-            'id' => $course->id,
         ]);
     }
 }

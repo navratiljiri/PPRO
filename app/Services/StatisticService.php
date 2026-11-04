@@ -62,7 +62,8 @@ class StatisticService
 
         return $query->get()->map(function (Lecturer $lecturer) {
             $totalHours = (int) $lecturer->lessons->sum('duration_hours');
-            $lecturer->total_taught_hours = $totalHours;
+            // Note: must not reuse the name total_taught_hours – that is an all-time accessor on Lecturer
+            $lecturer->period_taught_hours = $totalHours;
             $lecturer->lesson_count = $lecturer->lessons->count();
             return $lecturer;
         });

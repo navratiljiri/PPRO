@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CourseTerms;
 
+use App\Filament\Resources\CourseTerms\Pages\CourseTermGraduates;
 use App\Filament\Resources\CourseTerms\Pages\CreateCourseTerm;
 use App\Filament\Resources\CourseTerms\Pages\EditCourseTerm;
 use App\Filament\Resources\CourseTerms\Pages\ListCourseTerms;
@@ -64,6 +65,7 @@ class CourseTermResource extends Resource
             'create' => CreateCourseTerm::route('/create'),
             'view' => ViewCourseTerm::route('/{record}'),
             'edit' => EditCourseTerm::route('/{record}/edit'),
+            'graduates' => CourseTermGraduates::route('/{record}/graduates'),
         ];
     }
 }

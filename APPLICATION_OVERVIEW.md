@@ -6,6 +6,8 @@
 > **Klient:** Ing. Lucie Bartošová  
 > **Architektura:** Čistá 3-vrstvá MVC architektura (Laravel 12, PHP 8.4, Tailwind CSS v4, MySQL 8 v Dockeru)
 
+> **Aktualizace (Rozhodnutí 6):** Veřejný web je nyní pouze pro čtení. Vytváření, úpravy a mazání kurzů, termínů, lektorů a lekcí popsané níže se provádí výhradně v administraci Filament (`/admin`), nikoli na veřejném webu.
+
 ---
 
 ## Obsah

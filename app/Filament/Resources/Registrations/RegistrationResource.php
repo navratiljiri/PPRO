@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Registrations;
 
 use App\Filament\Resources\Registrations\Pages\CreateRegistration;
-use App\Filament\Resources\Registrations\Pages\EditRegistration;
 use App\Filament\Resources\Registrations\Pages\ListRegistrations;
 use App\Filament\Resources\Registrations\Pages\ViewRegistration;
 use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
@@ -35,6 +34,16 @@ class RegistrationResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'id';
+
+    /**
+     * Registrations cannot be edited directly (term/student change would bypass capacity,
+     * FIFO waiting list and Rozhodnutí 3). State changes go only through RegistrationService
+     * actions (cancel, accept / decline offer, issue certificate).
+     */
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
 
     public static function canDelete(Model $record): bool
     {
@@ -74,7 +83,6 @@ class RegistrationResource extends Resource
             'index' => ListRegistrations::route('/'),
             'create' => CreateRegistration::route('/create'),
             'view' => ViewRegistration::route('/{record}'),
-            'edit' => EditRegistration::route('/{record}/edit'),
         ];
     }
 }

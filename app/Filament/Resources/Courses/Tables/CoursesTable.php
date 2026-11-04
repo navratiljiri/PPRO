@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Courses\Tables;
 
+use App\Models\Course;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -31,7 +32,7 @@ class CoursesTable
                     ->weight('bold'),
                 TextColumn::make('duration_hours')
                     ->label('Rozsah')
-                    ->formatStateUsing(fn ($state) => "{$state} hod.")
+                    ->formatStateUsing(fn ($state): string => Course::formatHours((int) $state))
                     ->sortable(),
                 TextColumn::make('price')
                     ->label('Základní cena')

@@ -108,7 +108,13 @@ class StatisticServiceTest extends TestCase
         $lecturerItem = $hoursList->firstWhere('id', $lecturer->id);
 
         $this->assertNotNull($lecturerItem);
-        $this->assertEquals(10, $lecturerItem->total_taught_hours);
+        $this->assertEquals(10, $lecturerItem->period_taught_hours);
+
+        // Period filter: only the first lesson (tomorrow) falls into the range
+        $filtered = $this->statisticService
+            ->getLecturerTaughtHours(Carbon::now()->startOfDay(), Carbon::now()->addDay()->endOfDay())
+            ->firstWhere('id', $lecturer->id);
+        $this->assertEquals(4, $filtered->period_taught_hours);
     }
 
     public function test_it_identifies_students_enrolled_in_multiple_courses(): void

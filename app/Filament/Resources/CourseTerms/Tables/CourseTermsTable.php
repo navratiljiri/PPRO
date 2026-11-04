@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\CourseTerms\Tables;
 
+use App\Filament\Resources\CourseTerms\CourseTermResource;
+use Filament\Actions\Action;
 use App\Models\CourseTerm;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -96,6 +98,11 @@ class CourseTermsTable
             ->recordActions([
                 ViewAction::make()->label('Zobrazit'),
                 EditAction::make()->label('Upravit'),
+                Action::make('graduates')
+                    ->label('Absolventi')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color('success')
+                    ->url(fn (CourseTerm $record): string => CourseTermResource::getUrl('graduates', ['record' => $record])),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

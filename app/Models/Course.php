@@ -87,6 +87,31 @@ class Course extends Model
     }
 
     /**
+     * Duration with grammatically correct Czech plural
+     * (1 vyuč. hodina, 2–4 vyuč. hodiny, 0 / 5+ vyuč. hodin)
+     */
+    protected function formattedDuration(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => self::formatHours((int) $this->duration_hours),
+        );
+    }
+
+    /**
+     * Formats a number of academic hours with correct Czech plural form
+     */
+    public static function formatHours(int $hours): string
+    {
+        $word = match (true) {
+            $hours === 1 => 'hodina',
+            $hours >= 2 && $hours <= 4 => 'hodiny',
+            default => 'hodin',
+        };
+
+        return "{$hours} vyuč. {$word}";
+    }
+
+    /**
      * 1:N relationship: Terms scheduled for this course
      */
     public function courseTerms(): HasMany

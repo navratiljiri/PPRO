@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Certificates;
 
+use App\Filament\Resources\Certificates\Pages\CreateCertificate;
 use App\Filament\Resources\Certificates\Pages\ListCertificates;
 use App\Filament\Resources\Certificates\Pages\ViewCertificate;
+use App\Filament\Resources\Certificates\Schemas\CertificateForm;
 use App\Filament\Resources\Certificates\Schemas\CertificateInfolist;
 use App\Filament\Resources\Certificates\Tables\CertificatesTable;
 use App\Models\Certificate;
@@ -34,13 +36,9 @@ class CertificateResource extends Resource
     protected static ?string $recordTitleAttribute = 'certificate_number';
 
     /**
-     * Invariant: Certificates are immutable and issued strictly via graduation workflow.
+     * Invariant: Certificates are issued only via CertificateService (create form or
+     * registration action) and are immutable afterwards - no edit, no delete.
      */
-    public static function canCreate(): bool
-    {
-        return false;
-    }
-
     public static function canEdit(Model $record): bool
     {
         return false;
@@ -54,6 +52,11 @@ class CertificateResource extends Resource
     public static function canDeleteAny(): bool
     {
         return false;
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return CertificateForm::configure($schema);
     }
 
     public static function infolist(Schema $schema): Schema
@@ -77,6 +80,7 @@ class CertificateResource extends Resource
     {
         return [
             'index' => ListCertificates::route('/'),
+            'create' => CreateCertificate::route('/create'),
             'view' => ViewCertificate::route('/{record}'),
         ];
     }

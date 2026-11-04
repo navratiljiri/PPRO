@@ -47,10 +47,6 @@ class LecturersTable
                 ViewAction::make()->label('Zobrazit'),
                 EditAction::make()->label('Upravit'),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->toolbarActions([]);
     }
 }

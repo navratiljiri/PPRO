@@ -270,5 +270,8 @@ class DatabaseSeeder extends Seeder
                 'lecturer_approved' => true,
             ]
         );
+
+        // 9. Additional demo terms in all states (running, completed, cancelled, full with waiting list)
+        $this->call(CourseTermSeeder::class);
     }
 }

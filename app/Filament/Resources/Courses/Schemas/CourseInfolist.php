@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Courses\Schemas;
 
+use App\Models\Course;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
@@ -21,8 +22,7 @@ class CourseInfolist
                     ->columnSpanFull(),
                 TextEntry::make('duration_hours')
                     ->label('Hodinový rozsah')
-                    ->numeric()
-                    ->suffix(' vyuč. hodin'),
+                    ->formatStateUsing(fn ($state): string => Course::formatHours((int) $state)),
                 TextEntry::make('price')
                     ->label('Základní cena')
                     ->money('CZK', locale: 'cs'),

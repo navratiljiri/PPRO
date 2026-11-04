@@ -4,18 +4,10 @@
     <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#ebe7df]">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-[#1c1917] tracking-tight">Katalog a správa kurzů</h1>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-[#1c1917] tracking-tight">Katalog kurzů</h1>
                 <p class="mt-1 text-xs sm:text-sm text-[#78716c]">
-                    Správa vzdělávacích programů, rekvalifikačních a firemních kurzů Akademie Trutnov.
+                    Přehled vzdělávacích programů, rekvalifikačních a firemních kurzů Akademie Trutnov.
                 </p>
-            </div>
-            <div class="shrink-0 self-start sm:self-auto">
-                <a href="{{ route('courses.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-[#1c1917] text-[#faf8f5] hover:bg-[#2e2925] border border-[#1c1917] shadow-xs transition-all active:scale-[0.98]">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    <span>Vytvořit nový kurz</span>
-                </a>
             </div>
         </div>
 
@@ -38,7 +30,7 @@
             </div>
             <div class="bg-white p-4 sm:p-5 rounded-2xl border border-[#ebe7df] shadow-[0_1px_3px_0_rgba(28,25,23,0.03)]">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-[#78716c]">Průměrná dotace</div>
-                <div class="text-2xl font-extrabold text-[#1c1917] mt-1 font-heading">{{ $stats['average_hours'] ?? 0 }} <span class="text-xs sm:text-sm font-medium text-[#78716c]">hod</span></div>
+                <div class="text-2xl font-extrabold text-[#1c1917] mt-1 font-heading">{{ number_format((float) ($stats['average_hours'] ?? 0), 1, ',', ' ') }} <span class="text-xs sm:text-sm font-medium text-[#78716c]">hod</span></div>
                 <div class="text-[11px] sm:text-xs text-[#a8a29e] mt-1">na jeden kurz</div>
             </div>
         </div>
@@ -127,7 +119,7 @@
                         <div class="grid grid-cols-2 gap-2 pt-4 border-t border-[#f2eee9] text-xs">
                             <div>
                                 <span class="text-[#a8a29e] block font-medium">Hodinová dotace</span>
-                                <span class="font-semibold text-[#1c1917]">{{ $course->duration_hours }} vyuč. hodin</span>
+                                <span class="font-semibold text-[#1c1917]">{{ $course->formatted_duration }}</span>
                             </div>
                             <div>
                                 <span class="text-[#a8a29e] block font-medium">Základní cena</span>
@@ -144,22 +136,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
                         </a>
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('courses.edit', $course) }}" class="text-[#78716c] hover:text-[#1c1917] p-1.5 rounded-lg hover:bg-[#e8dbcc]/60 transition-colors" title="Upravit">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                </svg>
-                            </a>
-                            <form action="{{ route('courses.destroy', $course) }}" method="POST" onsubmit="return confirm('Opravdu chcete tento kurz odstranit?');" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-[#a8a29e] hover:text-[#991b1b] p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Smazat">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                    </svg>
-                                </button>
-                            </form>
-                        </div>
                     </div>
                 </div>
             @endforeach
@@ -187,9 +163,6 @@
                         Zrušit filtry
                     </a>
                 @endif
-                <a href="{{ route('courses.create') }}" class="px-4 py-2 text-xs font-semibold rounded-xl bg-[#1c1917] text-white hover:bg-[#2e2925] transition-colors">
-                    Vytvořit první kurz
-                </a>
             </div>
         </div>
     @endif

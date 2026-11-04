@@ -8,13 +8,45 @@ a projekt dodržuje [Sémantické verzování](https://semver.org/lang/cs/).
 ---
 
 ## [Unreleased]
-### Změněno (Changed)
-- **Lokalizace do češtiny:** Výchozí jazyk aplikace přepnut na `cs` (`config/app.php`, `.env.example`, `docker-compose.yml`), faker na `cs_CZ`. Vestavěné texty Filament PHP (tlačítka, přihlášení, filtry, stránkování, notifikace) se tak zobrazují česky.
-- Přeloženy všechny detailní pohledy (infolisty) administrace – kurzy, termíny, lektoři, lekce, studenti, přihlášky, docházka a osvědčení. Místo interních ID se zobrazují názvy kurzů a jména studentů a lektorů; stavy se zobrazují jako české štítky.
 
 ### Přidáno (Added)
+- **Formulář pro vystavení osvědčení** (`/admin/certificates/create`, tlačítko *Vystavit osvědčení*): výběr způsobilé přihlášky (jen stav *Zaregistrováno* bez osvědčení), živý náhled docházky, schválení lektorem a administrátorská výjimka s povinným odůvodněním. Vystavení probíhá přes `CertificateService` – číslo (`AT-YYYY-XXXXX`) a datum vydání se generují automaticky, nikdy se nezadávají ručně; pravidlo 70% docházky zůstává vynuceno a chyby služby se zobrazují přímo u polí formuláře.
+- **Seznam absolventů termínu** (`/admin/course-terms/{id}/graduates`, tlačítko *Absolventi* v detailu i v tabulce termínů): pro každého studenta docházka (počet lekcí a %), stav přihlášky, výsledek (*Úspěšný absolvent* / *Splňuje podmínky* / *Nesplňuje docházku*), číslo a datum osvědčení; filtr podle výsledku a akce *Vystavit osvědčení* přímo ze seznamu. Data poskytuje `CertificateService::getGraduationSummary()`.
+- **Stránka Statistiky** (`/admin/statistics`, menu *Přehledy*) – požadavek klienta č. 8:
+  - naplněnost termínů (počty i procenta, náhradníci v pořadníku),
+  - odučené hodiny lektorů ve zvoleném období (filtr *Od–Do*, výchozí aktuální rok),
+  - studenti přihlášení v daném roce na více než jeden kurz (filtr *Rok*).
+  Widgety `LecturerTaughtHoursTable` a `MultiCourseStudentsTable` čerpají data ze `StatisticService`.
+- Middleware `SetAdminLocale` – administrace Filament je vždy česky (i pro Livewire požadavky), nezávisle na `APP_LOCALE` v lokálním `.env`.
+- Trait `App\Filament\Concerns\MapsServiceValidationErrors` – převádí chyby obchodních pravidel ze služeb na chyby konkrétních polí formuláře Filament.
+- Accessor `Course::formatted_duration` a `Course::formatHours()` – hodinový rozsah se správným českým skloňováním (1 vyuč. hodina, 2–4 vyuč. hodiny, 5+ vyuč. hodin); použito ve veřejném katalogu i v administraci kurzů.
+- **Demo data:** `CourseTermSeeder` (volaný z `DatabaseSeeder`) přidává 9 termínů ve všech stavech – 2 dokončené (absolventi s osvědčeními i student pod hranicí 70 %), 2 probíhající (částečně zapsaná docházka, střídání dvou lektorů), 4 v zápisu (z toho 1 plně obsazený s pořadníkem), 1 zrušený (přihlášky zachovány se stornem). Dále 2 noví lektoři a 18 syntetických studentů, část z nich na více kurzech. Seeder je idempotentní.
 - České jazykové soubory `lang/cs/` (`validation.php` včetně českých názvů atributů, `auth.php`, `passwords.php`, `pagination.php`).
-- Test `FilamentLocalizationTest` ověřující české locale, český přihlašovací formulář a české popisky všech detailních stránek administrace (celkem 37 testů, 167 assercí).
+- Testy: `FilamentLocalizationTest`, `FilamentCertificateCreateTest`, `AdminIntegrityAndReportsTest` (kapacita, absolventi, statistiky). Celkem **55 testů, 289 assercí**.
+
+### Změněno (Changed)
+- **Veřejný web je pouze pro čtení (Rozhodnutí 6):** zůstaly jen přehledy a detaily kurzů, termínů a lektorů (`index`, `show`). Odstraněny routy, šablony `create`/`edit`, `LessonController`, všechny Form Requesty, tlačítka *Nový kurz*, *Upravit*, *Smazat* a formulář pro přidání lekce. Texty „Správa …“ přepsány na „Přehled …“, z patičky odstraněn text „Třívrstvá architektura (PPRO Minimum)“. Veškerá správa probíhá výhradně ve Filamentu.
+- **Filament ukládá přes aplikační vrstvu:** vytváření a úpravy kurzů (`CourseService`), termínů (`CourseTermService`), lektorů (`LecturerService`) a vytváření lekcí (`CourseTermService::addLessonToTerm`) dříve zapisovaly přímo do modelů a obcházely obchodní pravidla (unikátní kód, normalizace e-mailu, kontrola dat apod.).
+- **Přihlášky nelze editovat:** odstraněna stránka `EditRegistration` a tlačítko *Upravit*; stav se mění jen akcemi přes `RegistrationService` (zrušit, přijmout/odmítnout nabídku, vystavit osvědčení). Model `Registration` navíc blokuje změnu `course_term_id` / `student_id` – přesunem by šlo obejít kapacitu a Rozhodnutí 3.
+- **Kapacita termínu:** `CourseTermService::updateTerm` (se zámkem řádku) nepovolí snížit kapacitu pod počet obsazených míst; po navýšení kapacity nabídne uvolněná místa náhradníkům v pořadí FIFO (Rozhodnutí 2). `CourseTermService` nově závisí na `RegistrationService`.
+- **Lektor s lekcemi nelze smazat ani ve Filamentu:** mazání jde přes `LecturerService::deleteLecturer`, při porušení pravidla se zobrazí notifikace. Hromadné mazání lektorů odstraněno (kaskádou by smazalo jejich lekce i docházku).
+- **Osvědčení:** detail je pouze pro čtení (odstraněna nefunkční stránka `EditCertificate` a tlačítka Upravit/Smazat), seznam má tlačítko *Vystavit osvědčení*.
+- **Lokalizace do češtiny:** výchozí jazyk `cs` (`config/app.php`, `.env.example`, `docker-compose.yml`), faker `cs_CZ`; přeloženy všechny detailní pohledy administrace, místo interních ID se zobrazují názvy a jména, stavy jako české štítky.
+- `Dockerfile`: doinstalováno PHP rozšíření `intl` (`libicu-dev`), které Filament vyžaduje – bez něj selhával `composer install` v kontejneru.
+- Testy webového CRUD (`CourseManagementTest`, `CourseTermManagementTest`, `LecturerManagementTest`) převedeny na testy administrace Filament a doplněny o ověření, že veřejný web žádnou správu nenabízí (404/405).
+
+### Opraveno (Fixed)
+- `StatisticService::getLecturerTaughtHours()` – hodiny za zvolené období se ukládaly do atributu `total_taught_hours`, který přepisoval stejnojmenný accessor modelu `Lecturer` (součet za celou dobu), takže filtr období neměl žádný efekt. Výsledek je nově v `period_taught_hours`; test ověřuje i omezení obdobím.
+- `/lecturers/{id}` s nečíselným parametrem (např. `/lecturers/create`) vracelo chybu 500 – parametr je omezen na čísla (`whereNumber`), nyní 404.
+- Filament se při lokálním spuštění s `APP_LOCALE=en` zobrazoval anglicky.
+
+### Odstraněno (Removed)
+- `app/Http/Controllers/LessonController.php`, `app/Http/Requests/*` (7 Form Requestů), šablony `courses|terms|lecturers/create.blade.php` a `edit.blade.php`, stránky Filament `EditCertificate` a `EditRegistration`.
+
+### Známá omezení (zatím neřešeno)
+- `docker compose up` na čistém klonu nespustí funkční aplikaci: image nespouští `composer install`, nevytváří `.env` / `APP_KEY` a nespouští migrace ani seed.
+- Cizí klíče `course_terms`, `registrations` a `lessons` mají `cascadeOnDelete` – smazání kurzu, termínu nebo studenta ve Filamentu fyzicky smaže i navázané přihlášky, což je v rozporu s pravidlem auditovatelnosti.
+- Propadlé nabídky z pořadníku (24 h) se automaticky neposouvají (chybí plánovaná úloha); odůvodnění administrátorské výjimky u osvědčení se zatím neukládá.
 
 ---
 

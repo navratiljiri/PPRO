@@ -36,6 +36,17 @@ class FilamentLocalizationTest extends TestCase
             ->assertDontSee('Sign in');
     }
 
+    public function test_admin_panel_is_czech_even_when_app_locale_is_english(): void
+    {
+        config(['app.locale' => 'en']);
+        app()->setLocale('en');
+
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('Přihlásit')
+            ->assertDontSee('Sign in');
+    }
+
     public function test_detail_pages_are_rendered_in_czech(): void
     {
         $this->seed(DatabaseSeeder::class);

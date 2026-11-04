@@ -78,6 +78,7 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 - **Otevřený bod:** Klient váhá mezi automatickým limitem 70% docházky a subjektivním posouzením lektorem.
 - **Rozhodnutí:** **Dvoustupňový hybridní model.** Systém automaticky počítá procentuální účast na lekcích termínu. Pro udělení osvědčení je dosažení alespoň 70 % docházky **nutnou systémovou podmínkou**. Lektor na konci termínu provádí formální schválení („Prospěl / Neprospěl“). Systém nedovolí lektorovi označit studenta jako úspěšného, pokud nesplnil 70 % docházky (případnou výjimku může s povinným odůvodněním schválit pouze administrátor centra).
 - **Důvod:** Zajišťuje objektivní splnění akreditačních standardů a zároveň respektuje pedagogickou roli lektora.
+- **Implementace v administraci:** Osvědčení se vystavuje buď akcí *Vystavit osvědčení* u přihlášky, nebo formulářem *Osvědčení → Vystavit osvědčení*. Formulář nabízí pouze aktivní přihlášky bez osvědčení, zobrazí aktuální docházku a obsahuje schválení lektorem a volitelnou administrátorskou výjimku s povinným odůvodněním. **Číslo osvědčení ani datum vydání se ručně nezadávají** – generuje je `CertificateService` (`AT-YYYY-XXXXX`), aby se nikdy nemohlo opakovat. Vydané osvědčení nelze upravit ani smazat (v administraci chybí editace i mazání, model to navíc blokuje).
 
 ### Rozhodnutí 2: Mechanismus posunu z pořadníku (Waiting listu)
 - **Otevřený bod:** Není ujasněno, zda uvolněné místo systém automaticky obsadí prvním zájemcem, nebo zda vyžaduje potvrzení.
@@ -99,20 +100,33 @@ Podle metodiky PPRO obsahuje zadání klienta 5 otevřených bodů („kde se n�
 - **Rozhodnutí:** **Modelování termínu jako sekvence konkrétních výukových lekcí/bloků.** Každý termín se skládá z jedné či více lekcí (den/blok) a každá lekce má přiřazeného konkrétního lektora a délku v hodinách. Ve statistikách se lektorovi započítávají hodiny ze všech lekcí, které skutečně odučil.
 - **Důvod:** Transparentní, přesný a flexibilní model umožňující jak samostatné vedení termínu jedním lektorem, tak střídání libovolného počtu lektorů bez zkreslení výkazů.
 
+### Rozhodnutí 6 (procesní): Administrace výhradně přes Filament
+- **Rozhodnutí:** Veřejný web (`/courses`, `/terms`, `/lecturers`) je **pouze pro čtení** – katalog kurzů, termínů a lektorů. Veškerá správa dat (zakládání, úpravy, mazání, přihlášky, docházka, osvědčení, statistiky) probíhá výhradně v administraci Filament (`/admin`).
+- **Důvod:** Jediné místo správy, za přihlášením, bez duplicitních formulářů. Filamentové stránky ukládají data přes aplikační služby (`CourseService`, `CourseTermService`, `LecturerService`, `RegistrationService`, `CertificateService`), takže obchodní pravidla platí stejně jako dříve na webu.
+
+### Ochrana kapacity v administraci
+- Přihlášku nelze editovat (přesunout na jiný termín či studenta) – změny stavu jen akcemi přes `RegistrationService`; model navíc přesun blokuje.
+- Kapacitu termínu nelze snížit pod počet obsazených míst (`CourseTermService::updateTerm`, se zámkem řádku). Při navýšení kapacity se uvolněná místa nabídnou náhradníkům v pořadí FIFO (Rozhodnutí 2).
+- Lektora s naplánovanými lekcemi nelze smazat (`LecturerService::deleteLecturer`).
+
+### Přehledy v administraci
+- **Statistiky** (`/admin/statistics`): naplněnost termínů, odučené hodiny lektorů ve zvoleném období (filtr Od–Do), studenti přihlášení v daném roce na více než jeden kurz (filtr Rok).
+- **Seznam absolventů termínu** (`/admin/course-terms/{id}/graduates`, tlačítko *Absolventi*): docházka, výsledek (úspěšný absolvent / splňuje podmínky / nesplňuje 70 %), číslo osvědčení a možnost osvědčení přímo vystavit.
+
 ---
 
 ## 6. Povinné minimum PPRO
 
 | Požadavek | Návrh a realizace | Stav |
 |---|---|:---:|
-| **3 vrstvy se závislostmi jedním směrem** | UI/Blade + Administrace Filament PHP (`/admin`) $\rightarrow$ Aplikační byznys logika (`CourseService`, `CourseTermService`, `LecturerService`, `RegistrationService`, `AttendanceService`, `CertificateService`, `StatisticService`) $\rightarrow$ Perzistence (`Course`, `CourseTerm`, `Lecturer`, `Lesson`, `Student`, `Registration`, `AttendanceRecord`, `Certificate`) | **Kompletně implementováno (8 entit + 7 aplikačních služeb)** |
+| **3 vrstvy se závislostmi jedním směrem** | Veřejný katalog Blade (jen čtení) + Administrace Filament PHP (`/admin`, ukládá přes služby) $\rightarrow$ Aplikační byznys logika (`CourseService`, `CourseTermService`, `LecturerService`, `RegistrationService`, `AttendanceService`, `CertificateService`, `StatisticService`) $\rightarrow$ Perzistence (`Course`, `CourseTerm`, `Lecturer`, `Lesson`, `Student`, `Registration`, `AttendanceRecord`, `Certificate`) | **Kompletně implementováno (8 entit + 7 aplikačních služeb)** |
 | **Relační databáze v Dockeru** | MySQL 8.0 kontejner v `docker-compose.yml` | **Implementováno & Kontejnerizováno** |
 | **Verzované migrace** | Schéma řízené verzovanými migracemi v `database/migrations/` pro všech 8 entit a vazeb | **Implementováno (11 migrací)** |
 | **Minimálně 5 entit** | Kurz, Termín, Lektor, Lekce, Student, Přihláška, Docházka, Osvědčení | **8/8 hotovo (100 % modelu)** |
 | **Alespoň jedna vazba M:N** | Lektoři $\leftrightarrow$ Termíny (přes výukové lekce `Lesson`), Studenti $\leftrightarrow$ Termíny (přes přihlášky `Registration`) | **Implementováno (2 vazby M:N)** |
-| **Automatizované testy** | Feature testy pro kapacity, FIFO pořadník, neměnnost osvědčení, 70% docházku, statistiky a Filament administraci včetně české lokalizace (`php artisan test`) | **Implementováno (37 testů, 167 ass.)** |
-| **docker compose up** | Kompletní spuštění aplikace i MySQL databáze (`docker-compose.yml` + `Dockerfile`) | **Připraveno** |
-| **Syntetická data** | Žádná reálná data; `DatabaseSeeder` s kompletními daty, správcem a vzorovými stavy | **Implementováno** |
+| **Automatizované testy** | Feature testy pro kapacity, FIFO pořadník, neměnnost osvědčení, 70% docházku, statistiky a Filament administraci včetně české lokalizace (`php artisan test`) | **Implementováno (55 testů, 289 ass.)** |
+| **docker compose up** | `docker-compose.yml` (aplikace PHP 8.4 + Apache, MySQL 8.0) + `Dockerfile` (vč. rozšíření `intl`) | **Částečně** – na čistém klonu zatím chybí automatický `composer install`, `.env`/`APP_KEY` a migrace (viz [Známá omezení](#známá-omezení)) |
+| **Syntetická data** | Žádná reálná data; `DatabaseSeeder` + `CourseTermSeeder`: 6 kurzů, 5 lektorů, 12 termínů ve všech stavech (zápis, probíhá, dokončeno, zrušeno, plný termín s pořadníkem), docházka, absolventi s osvědčeními | **Implementováno** |
 
 ---
 
@@ -123,11 +137,17 @@ Systém je navržen a realizován podle zásad čisté MVC architektury se servi
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PREZENTAČNÍ VRSTVA (UI)                         │
-│  - Veřejný katalog: Blade + Tailwind CSS v4 (Course, Term, Lecturer)  │
-│  - Administrační rozhraní: Filament PHP Panel (/admin)                │
-│    (CourseResource, CourseTermResource, LecturerResource,             │
-│     LessonResource, StudentResource, RegistrationResource,            │
-│     AttendanceRecordResource, CertificateResource + Dashboard Widgets) │
+│  - Veřejný katalog (jen čtení): Blade + Tailwind CSS v4               │
+│    CourseController, CourseTermController, LecturerController         │
+│    (pouze index + show, žádné formuláře)                              │
+│  - Administrační rozhraní: Filament PHP Panel (/admin) – jediné       │
+│    místo správy dat (Rozhodnutí 6):                                   │
+│    Resources: Course, CourseTerm (+ stránka Absolventi), Lecturer,    │
+│     Lesson, Student, Registration, AttendanceRecord, Certificate      │
+│    Pages: Dashboard, Statistiky (Statistics)                          │
+│    Widgets: AkademieStatsOverview, TermOccupancyTableWidget,          │
+│     LecturerTaughtHoursTable, MultiCourseStudentsTable                │
+│    Middleware SetAdminLocale (vynucená čeština)                       │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ volá přes Dependency Injection
                                     ▼
@@ -151,6 +171,21 @@ Systém je navržen a realizován podle zásad čisté MVC architektury se servi
 │  - MySQL 8.0 běžící v Docker kontejneru                                │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Tok požadavku v administraci:** stránka Filament (např. `EditCourseTerm::handleRecordUpdate`) volá aplikační službu (`CourseTermService::updateTerm`) → služba ověří obchodní pravidla v transakci se zámkem řádku a zapíše přes Eloquent model → případná `ValidationException` se traitem `MapsServiceValidationErrors` zobrazí u konkrétního pole formuláře. Filament tak nikdy nezapisuje do modelů mimo služby u operací, na které se vztahují obchodní pravidla.
+
+### Mapa administrace (`/admin`)
+| Sekce | Co umožňuje | Vynucená pravidla |
+|---|---|---|
+| Kurzy | evidence kurzů (kód, anotace, rozsah, cena, akreditace) | unikátní kód, rozsah ≥ 1 h, cena ≥ 0 (`CourseService`) |
+| Termíny kurzů | termíny, učebny, kapacity; tlačítko *Absolventi* | konec po začátku, kapacita ≥ obsazená místa, navýšení → nabídka náhradníkům (`CourseTermService`) |
+| Lekce | výukové bloky s lektorem a hodinami | konec po začátku, délka ≥ 1 h (`CourseTermService`) |
+| Lektoři | evidence externistů | unikátní e-mail, nelze smazat lektora s lekcemi (`LecturerService`) |
+| Studenti | evidence účastníků | unikátní e-mail |
+| Přihlášky | zápis, zrušení, přijetí/odmítnutí nabídky, vystavení osvědčení | kapacita, FIFO, Rozhodnutí 3 a 4, bez editace a mazání (`RegistrationService`) |
+| Docházka | přítomnost na jednotlivých lekcích | jeden záznam na studenta a lekci |
+| Osvědčení | seznam, detail, *Vystavit osvědčení* | 70 % docházky + souhlas lektora, generované unikátní číslo, neměnnost (`CertificateService`) |
+| Statistiky | naplněnost, hodiny lektorů za období, studenti s více kurzy | – (`StatisticService`) |
 
 > 💡 **Podrobný přehled uživatelského rozhraní a drátové modely obrazovek (Wireframes):**  
 > Kompletní obrazovkový průchod systémem, textové drátové modely všech pohledů a Mermaid diagram uživatelského toku naleznete v samostatném dokumentu 👉 **[APPLICATION_OVERVIEW.md](APPLICATION_OVERVIEW.md)**.
@@ -268,11 +303,44 @@ docker compose up -d
 docker compose logs -f
 ```
 
+> ⚠️ Do vyřešení [známého omezení](#známá-omezení) je po prvním spuštění nutné v kontejneru jednorázově připravit aplikaci:
+> ```bash
+> cp .env.example .env
+> docker compose exec app composer install
+> docker compose exec app php artisan key:generate
+> docker compose exec app php artisan migrate --seed
+> ```
+
+### Lokální vývoj bez Dockeru (např. XAMPP / `php artisan serve`)
+```bash
+composer install
+cp .env.example .env          # pro MySQL z docker compose nastavte DB_PORT=3307
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve --port=8000
+```
+
+### Demo data (seedery)
+`php artisan db:seed` (nebo `migrate --seed`) naplní databázi syntetickými daty: správce, 6 kurzů, 5 lektorů, 24 studentů a 12 termínů ve všech stavech – v zápisu (včetně plně obsazeného termínu s FIFO pořadníkem), probíhající (částečná docházka, střídání lektorů), dokončené (absolventi s osvědčeními i student pod hranicí 70 %) a zrušený (přihlášky zachované se stornem). Seedery (`DatabaseSeeder`, `CourseSeeder`, `CourseTermSeeder`) jsou idempotentní – opakované spuštění data nezdvojí.
+
+### Testy
+```bash
+php artisan test        # 55 testů, 289 assercí (SQLite in-memory, viz phpunit.xml)
+```
+Pokrytí: kapacita a souběh, FIFO pořadník a posun (Rozhodnutí 2), Rozhodnutí 3 a 4, docházka a 70% hranice, vystavení a neměnnost osvědčení, ochrana kapacity v administraci, seznam absolventů, statistiky (včetně filtru období), česká lokalizace, administrace Filament (CRUD přes služby) a to, že veřejný web žádnou správu nenabízí.
+
 ### Přístupy do aplikace
 - **Veřejný web a katalog kurzů:** [http://localhost:8000](http://localhost:8000)
 - **Administrace Filament PHP:** [http://localhost:8000/admin](http://localhost:8000/admin)
   - **Přihlašovací e-mail:** `admin@akademietrutnov.cz`
-  - **Heslo:** `admin123`
+  - **Heslo:** `admin123` (pouze syntetický účet pro vývoj a předvedení)
+- **Statistiky:** [http://localhost:8000/admin/statistics](http://localhost:8000/admin/statistics)
+
+### Známá omezení
+- **`docker compose up` na čistém klonu:** image zatím nespouští `composer install`, nevytváří `.env`/`APP_KEY` a nespouští migrace – je nutný jednorázový postup výše.
+- **Kaskádové mazání:** cizí klíče `course_terms`, `registrations` a `lessons` mají `cascadeOnDelete`; smazání kurzu, termínu nebo studenta v administraci fyzicky odstraní i navázané přihlášky (v rozporu s pravidlem auditovatelnosti). Do opravy proto takové záznamy nemažte – termín místo toho přepněte do stavu *Zrušeno*.
+- **Propadlé nabídky z pořadníku** se automaticky neposouvají (chybí plánovaná úloha) – posun nastane až akcí *Přijmout* / *Odmítnout nabídku*.
+- **Odůvodnění administrátorské výjimky** u osvědčení je povinné ve formuláři, ale zatím se neukládá do databáze.
 
 ---
 
@@ -281,7 +349,7 @@ docker compose logs -f
 Projekt striktně dodržuje provozní zásady specifikované v [AGENTS.md](file:///c:/Develop/PPRO/AGENTS.md):
 - **Commity:** Vždy s přepínačem `-m` a věcným popisem změn (Conventional Commits).
 - **Push do remote repozitáře:** VÝHRADNĚ po explicitním pokynu uživatele.
-- **Jazyk:** Kód, DB schéma a routy anglicky; uživatelské rozhraní česky (výchozí locale `cs`, překlady v `lang/cs/`, Filament používá vlastní české překlady).
+- **Jazyk:** Kód, DB schéma a routy anglicky; uživatelské rozhraní česky (výchozí locale `cs`, překlady v `lang/cs/`, Filament používá vlastní české překlady; administrace `/admin` má češtinu vynucenou middlewarem `SetAdminLocale`, takže nezávisí na `APP_LOCALE` v lokálním `.env`).
 - **Dokumentace:** `README.md` je udržován neustále aktuální jako jediný zdroj pravdy; změny se evidují před každým commitem.
 - **Git pre-commit hook:** Automaticky ověřuje integritu dokumentace a zakazuje commit nechtěných souborů.
 

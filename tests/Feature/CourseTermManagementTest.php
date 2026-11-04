@@ -2,13 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\CourseTerms\Pages\CreateCourseTerm;
+use App\Filament\Resources\CourseTerms\Pages\EditCourseTerm;
+use App\Filament\Resources\Lessons\Pages\CreateLesson;
 use App\Models\Course;
 use App\Models\CourseTerm;
 use App\Models\Lecturer;
 use App\Models\Lesson;
+use App\Models\User;
+use App\Services\CourseTermService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
+/**
+ * Public term list is read-only; term and lesson administration happens only in Filament (/admin).
+ */
 class CourseTermManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -30,16 +39,30 @@ class CourseTermManagementTest extends TestCase
         ]);
     }
 
-    public function test_it_displays_the_terms_list(): void
+    private function actingAsAdmin(): void
     {
-        CourseTerm::create([
+        $this->actingAs(User::create([
+            'name' => 'Správce',
+            'email' => 'admin@example.test',
+            'password' => bcrypt('secret'),
+        ]));
+    }
+
+    private function term(array $overrides = []): CourseTerm
+    {
+        return CourseTerm::create(array_merge([
             'course_id' => $this->activeCourse->id,
             'start_date' => now()->addDays(10),
             'end_date' => now()->addDays(20),
-            'classroom' => 'Učebna 204 (Počítačová)',
-            'capacity' => 12,
+            'classroom' => 'Učebna 101',
+            'capacity' => 10,
             'status' => 'enrolling',
-        ]);
+        ], $overrides));
+    }
+
+    public function test_it_displays_the_terms_list(): void
+    {
+        $this->term(['classroom' => 'Učebna 204 (Počítačová)', 'capacity' => 12]);
 
         $response = $this->get('/terms');
 
@@ -49,21 +72,39 @@ class CourseTermManagementTest extends TestCase
         $response->assertSee('Podvojné účetnictví');
     }
 
-    public function test_it_can_create_a_course_term(): void
+    public function test_public_website_has_no_term_administration(): void
     {
-        $payload = [
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10)->format('Y-m-d\TH:i'),
-            'end_date' => now()->addDays(15)->format('Y-m-d\TH:i'),
-            'classroom' => 'Učebna 101',
-            'capacity' => 16,
-            'status' => 'enrolling',
-            'note' => 'Termín s ranní výukou.',
-        ];
+        $term = $this->term();
 
-        $response = $this->post('/terms', $payload);
+        $this->get('/terms/create')->assertNotFound();
+        $this->get("/terms/{$term->id}/edit")->assertNotFound();
+        $this->post('/terms', [])->assertStatus(405);
+        $this->delete("/terms/{$term->id}")->assertStatus(405);
+        $this->post("/terms/{$term->id}/lessons", [])->assertNotFound();
 
-        $response->assertRedirect();
+        $this->get("/terms/{$term->id}")
+            ->assertOk()
+            ->assertDontSee('Upravit termín')
+            ->assertDontSee('Přidat výukový blok');
+    }
+
+    public function test_admin_can_create_a_course_term_in_filament(): void
+    {
+        $this->actingAsAdmin();
+
+        Livewire::test(CreateCourseTerm::class)
+            ->fillForm([
+                'course_id' => $this->activeCourse->id,
+                'start_date' => now()->addDays(10)->format('Y-m-d H:i:s'),
+                'end_date' => now()->addDays(15)->format('Y-m-d H:i:s'),
+                'classroom' => 'Učebna 101',
+                'capacity' => 16,
+                'status' => 'enrolling',
+                'note' => 'Termín s ranní výukou.',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
         $this->assertDatabaseHas('course_terms', [
             'course_id' => $this->activeCourse->id,
             'classroom' => 'Učebna 101',
@@ -72,41 +113,39 @@ class CourseTermManagementTest extends TestCase
         ]);
     }
 
-    public function test_it_validates_dates_and_capacity(): void
+    public function test_term_service_validates_dates_in_filament(): void
     {
-        // End date before start date
-        $response = $this->post('/terms', [
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10)->format('Y-m-d\TH:i'),
-            'end_date' => now()->addDays(5)->format('Y-m-d\TH:i'),
-            'classroom' => 'Učebna 101',
-            'capacity' => 0,
-        ]);
+        $this->actingAsAdmin();
 
-        $response->assertSessionHasErrors(['end_date', 'capacity']);
+        Livewire::test(CreateCourseTerm::class)
+            ->fillForm([
+                'course_id' => $this->activeCourse->id,
+                'start_date' => now()->addDays(10)->format('Y-m-d H:i:s'),
+                'end_date' => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'classroom' => 'Učebna 101',
+                'capacity' => 5,
+                'status' => 'enrolling',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['end_date']);
+
+        $this->assertSame(0, CourseTerm::count());
     }
 
-    public function test_it_can_update_a_course_term(): void
+    public function test_admin_can_update_a_course_term_in_filament(): void
     {
-        $term = CourseTerm::create([
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10),
-            'end_date' => now()->addDays(20),
-            'classroom' => 'Učebna Stará',
-            'capacity' => 10,
-            'status' => 'enrolling',
-        ]);
+        $this->actingAsAdmin();
+        $term = $this->term(['classroom' => 'Učebna Stará']);
 
-        $response = $this->put("/terms/{$term->id}", [
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10)->format('Y-m-d\TH:i'),
-            'end_date' => now()->addDays(20)->format('Y-m-d\TH:i'),
-            'classroom' => 'Učebna Nová',
-            'capacity' => 14,
-            'status' => 'in_progress',
-        ]);
+        Livewire::test(EditCourseTerm::class, ['record' => $term->getRouteKey()])
+            ->fillForm([
+                'classroom' => 'Učebna Nová',
+                'capacity' => 14,
+                'status' => 'in_progress',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
-        $response->assertRedirect();
         $this->assertDatabaseHas('course_terms', [
             'id' => $term->id,
             'classroom' => 'Učebna Nová',
@@ -115,89 +154,64 @@ class CourseTermManagementTest extends TestCase
         ]);
     }
 
-    public function test_it_can_add_and_remove_lessons_to_support_alternating_lecturers(): void
+    public function test_lessons_support_alternating_lecturers(): void
     {
-        $term = CourseTerm::create([
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10),
-            'end_date' => now()->addDays(20),
-            'classroom' => 'Učebna 101',
-            'capacity' => 15,
-            'status' => 'enrolling',
-        ]);
+        $this->actingAsAdmin();
+        $term = $this->term();
+        $lecturerA = Lecturer::create(['first_name' => 'Karel', 'last_name' => 'Nový', 'email' => 'karel.novy@example.cz']);
+        $lecturerB = Lecturer::create(['first_name' => 'Hana', 'last_name' => 'Bílá', 'email' => 'hana.bila@example.cz']);
 
-        $lecturerA = Lecturer::create([
-            'first_name' => 'Karel',
-            'last_name' => 'Nový',
-            'email' => 'karel.novy@example.cz',
-        ]);
+        // Lesson 1 taught by lecturer A (created in Filament through CourseTermService)
+        Livewire::test(CreateLesson::class)
+            ->fillForm([
+                'course_term_id' => $term->id,
+                'lecturer_id' => $lecturerA->id,
+                'topic' => 'Úvod a legislativa',
+                'starts_at' => now()->addDays(10)->setTime(9, 0)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addDays(10)->setTime(13, 0)->format('Y-m-d H:i:s'),
+                'duration_hours' => 4,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
-        $lecturerB = Lecturer::create([
-            'first_name' => 'Hana',
-            'last_name' => 'Bílá',
-            'email' => 'hana.bila@example.cz',
-        ]);
-
-        // Add lesson 1 taught by lecturer A
-        $responseA = $this->post("/terms/{$term->id}/lessons", [
-            'lecturer_id' => $lecturerA->id,
-            'topic' => 'Úvod a legislativa',
-            'starts_at' => now()->addDays(10)->setTime(9, 0)->format('Y-m-d\TH:i'),
-            'ends_at' => now()->addDays(10)->setTime(13, 0)->format('Y-m-d\TH:i'),
-            'duration_hours' => 4,
-            'room' => '101',
-        ]);
-
-        $responseA->assertRedirect();
-        $this->assertDatabaseHas('lessons', [
-            'course_term_id' => $term->id,
-            'lecturer_id' => $lecturerA->id,
-            'duration_hours' => 4,
-        ]);
-
-        // Add lesson 2 taught by lecturer B (Decision 5: alternating lecturers)
-        $responseB = $this->post("/terms/{$term->id}/lessons", [
+        // Lesson 2 taught by lecturer B (Rozhodnutí 5: alternating lecturers)
+        app(CourseTermService::class)->addLessonToTerm($term, [
             'lecturer_id' => $lecturerB->id,
             'topic' => 'Praktické účtování v SW',
-            'starts_at' => now()->addDays(12)->setTime(9, 0)->format('Y-m-d\TH:i'),
-            'ends_at' => now()->addDays(12)->setTime(15, 0)->format('Y-m-d\TH:i'),
-            'duration_hours' => 6,
-            'room' => '101',
-        ]);
-
-        $responseB->assertRedirect();
-        $this->assertDatabaseHas('lessons', [
-            'course_term_id' => $term->id,
-            'lecturer_id' => $lecturerB->id,
+            'starts_at' => now()->addDays(12)->setTime(9, 0),
+            'ends_at' => now()->addDays(12)->setTime(15, 0),
             'duration_hours' => 6,
         ]);
 
-        // Verify M:N relationship
+        $this->assertDatabaseHas('lessons', ['course_term_id' => $term->id, 'lecturer_id' => $lecturerA->id, 'duration_hours' => 4]);
+        $this->assertDatabaseHas('lessons', ['course_term_id' => $term->id, 'lecturer_id' => $lecturerB->id, 'duration_hours' => 6]);
         $this->assertEquals(2, $term->fresh()->lecturers()->count());
 
-        // Remove lesson
-        $lesson = Lesson::where('lecturer_id', $lecturerA->id)->first();
-        $responseDelete = $this->delete("/lessons/{$lesson->id}");
+        $lesson = Lesson::where('lecturer_id', $lecturerA->id)->firstOrFail();
+        app(CourseTermService::class)->removeLesson($lesson);
 
-        $responseDelete->assertRedirect();
         $this->assertDatabaseMissing('lessons', ['id' => $lesson->id]);
         $this->assertEquals(1, $term->fresh()->lecturers()->count());
     }
 
-    public function test_it_can_delete_a_course_term(): void
+    public function test_lesson_ending_before_start_is_rejected_in_filament(): void
     {
-        $term = CourseTerm::create([
-            'course_id' => $this->activeCourse->id,
-            'start_date' => now()->addDays(10),
-            'end_date' => now()->addDays(20),
-            'classroom' => 'Učebna 101',
-            'capacity' => 10,
-            'status' => 'enrolling',
-        ]);
+        $this->actingAsAdmin();
+        $term = $this->term();
+        $lecturer = Lecturer::create(['first_name' => 'Karel', 'last_name' => 'Nový', 'email' => 'karel.novy@example.cz']);
 
-        $response = $this->delete("/terms/{$term->id}");
+        Livewire::test(CreateLesson::class)
+            ->fillForm([
+                'course_term_id' => $term->id,
+                'lecturer_id' => $lecturer->id,
+                'topic' => 'Chybná lekce',
+                'starts_at' => now()->addDays(10)->setTime(13, 0)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addDays(10)->setTime(9, 0)->format('Y-m-d H:i:s'),
+                'duration_hours' => 4,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['ends_at']);
 
-        $response->assertRedirect("/courses/{$this->activeCourse->id}");
-        $this->assertDatabaseMissing('course_terms', ['id' => $term->id]);
+        $this->assertSame(0, Lesson::count());
     }
 }

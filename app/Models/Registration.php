@@ -44,6 +44,20 @@ class Registration extends Model
     ];
 
     /**
+     * Integrity guard: a registration can never be moved to another term or student.
+     * Such a change would bypass the capacity check, FIFO waiting list and Rozhodnutí 3
+     * enforced by RegistrationService – cancel and create a new registration instead.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Registration $registration) {
+            if ($registration->isDirty(['course_term_id', 'student_id'])) {
+                throw new \RuntimeException('Přihlášku nelze přesunout na jiný termín ani jiného studenta. Zrušte ji a vytvořte novou přihlášku.');
+            }
+        });
+    }
+
+    /**
      * Parent course term
      */
     public function courseTerm(): BelongsTo

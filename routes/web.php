@@ -3,21 +3,22 @@
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseTermController;
 use App\Http\Controllers\LecturerController;
-use App\Http\Controllers\LessonController;
 use Illuminate\Support\Facades\Route;
 
-// Hlavní stránka přesměrovává přímo do katalogu kurzů
+/*
+| Public website is read-only (catalog of courses, terms and lecturers).
+| All administration (create / edit / delete, registrations, attendance, certificates)
+| is done exclusively in the Filament panel at /admin.
+*/
+
 Route::redirect('/', '/courses');
 
-// RESTful routy pro správu entit Kurzu
-Route::resource('courses', CourseController::class);
+Route::resource('courses', CourseController::class)->only(['index', 'show']);
 
-// RESTful routy pro správu Termínů kurzů
-Route::resource('terms', CourseTermController::class)->parameters(['terms' => 'courseTerm']);
+Route::resource('terms', CourseTermController::class)
+    ->only(['index', 'show'])
+    ->parameters(['terms' => 'courseTerm']);
 
-// RESTful routy pro správu Lektorů
-Route::resource('lecturers', LecturerController::class);
-
-// Správa lekcí v rámci termínu (střídání lektorů)
-Route::post('terms/{courseTerm}/lessons', [LessonController::class, 'store'])->name('terms.lessons.store');
-Route::delete('lessons/{lesson}', [LessonController::class, 'destroy'])->name('lessons.destroy');
+Route::resource('lecturers', LecturerController::class)
+    ->only(['index', 'show'])
+    ->whereNumber('lecturer');

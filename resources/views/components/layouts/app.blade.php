@@ -77,15 +77,6 @@
 
                 <!-- Pravá sekce: Tlačítko akce a Hamburger -->
                 <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                    <a href="{{ route('courses.create') }}" 
-                       class="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-[#e8dbcc] hover:bg-[#decaba] text-[#3d2b17] border border-[#d8c5b0] text-xs font-semibold tracking-wide cursor-pointer transition-all shadow-xs active:scale-[0.98]">
-                        <svg class="w-3.5 h-3.5 text-[#3d2b17]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        <span class="hidden sm:inline">Nový kurz</span>
-                        <span class="sm:hidden text-[11px]">Nový</span>
-                    </a>
-
                     <!-- Tlačítko mobilního menu -->
                     <button type="button" 
                             id="mobile-nav-toggle"
@@ -118,14 +109,6 @@
                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#215a28] bg-[#ecf4ed] border border-[#cde0cf]">
                 <span>Administrace (Filament)</span>
             </a>
-            <div class="pt-2 border-t border-[#ebe7df] mt-2">
-                <a href="{{ route('courses.create') }}" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#e8dbcc] text-[#3d2b17] border border-[#d8c5b0] text-xs font-semibold">
-                    <svg class="w-3.5 h-3.5 text-[#3d2b17]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    <span>Vytvořit nový kurz</span>
-                </a>
-            </div>
         </div>
     </header>
 
@@ -181,8 +164,6 @@
             </div>
             <div class="flex items-center gap-4 text-[#a8a29e]">
                 <span>Klient: Ing. Lucie Bartošová</span>
-                <span class="opacity-30">/</span>
-                <span>Třívrstvá architektura (PPRO Minimum)</span>
             </div>
         </div>
     </footer>

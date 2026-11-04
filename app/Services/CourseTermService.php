@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\CourseTerm;
 use App\Models\Lesson;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +17,10 @@ use Illuminate\Validation\ValidationException;
  */
 class CourseTermService
 {
+    public function __construct(
+        protected RegistrationService $registrationService
+    ) {}
+
     /**
      * Get paginated terms with optional filters
      */
@@ -110,9 +115,29 @@ class CourseTermService
             ]);
         }
 
-        $term->update($data);
+        $updated = DB::transaction(function () use ($term, $data) {
+            // Lock the term so that no registration can be added between the check and the update
+            $lockedTerm = CourseTerm::where('id', $term->id)->lockForUpdate()->firstOrFail();
 
-        return $term->fresh();
+            // Business rule: capacity can never drop below the number of occupied spots
+            $occupied = $lockedTerm->activeRegistrations()->count();
+            if (array_key_exists('capacity', $data) && (int) $data['capacity'] < $occupied) {
+                throw ValidationException::withMessages([
+                    'capacity' => "Kapacitu nelze snížit pod počet obsazených míst ({$occupied}). Nejprve zrušte některé přihlášky.",
+                ]);
+            }
+
+            $lockedTerm->update($data);
+
+            return $lockedTerm;
+        });
+
+        // Capacity increase frees spots -> offer them to waiting list in FIFO order (Rozhodnutí 2)
+        while ($this->registrationService->promoteWaitingList($updated)) {
+            // each call offers exactly one freed spot to the next waiting applicant
+        }
+
+        return $updated->fresh();
     }
 
     /**
